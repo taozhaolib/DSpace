@@ -10,8 +10,11 @@ package org.dspace.app.xmlui.aspect.discovery;
 import java.io.IOException;
 import java.io.Serializable;
 import java.sql.SQLException;
-
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.cocoon.caching.CacheableProcessingComponent;
+import org.apache.cocoon.environment.ObjectModelHelper;
+import org.apache.cocoon.environment.Request;
 import org.apache.excalibur.source.SourceValidity;
 import org.apache.excalibur.source.impl.validity.NOPValidity;
 import org.dspace.app.xmlui.cocoon.AbstractDSpaceTransformer;
@@ -64,24 +67,50 @@ public class SiteViewer extends AbstractDSpaceTransformer implements CacheablePr
     	pageMeta.addMetadata("title").addContent(T_dspace_home);
     	pageMeta.addTrailLink(contextPath, T_dspace_home);
 
+        String filterQueryString = "";
+        
+        //** get the query string **//
+        Request request = ObjectModelHelper.getRequest(objectModel);
+        String uri = request.getRequestURI();
+        if(null != uri && uri.endsWith("/discover"))
+        {
+            try{
+                SimpleSearch ss = new SimpleSearch();
+                ss.setup(null, objectModel, url, parameters);
+
+                Map<String, String> parameters = new HashMap<String, String>();
+                parameters.put("page", "{pageNum}");
+                String pageURLMask = ss.generateURL(parameters);
+                filterQueryString = ss.addFilterQueriesToUrl(pageURLMask);
+            }
+            catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+
         // Add RSS links if available
         String formats = ConfigurationManager.getProperty("webui.feed.formats");
-		if ( formats != null )
-		{
-			for (String format : formats.split(","))
-			{
-				// Remove the protocol number, i.e. just list 'rss' or' atom'
-				String[] parts = format.split("_");
-				if (parts.length < 1)
+        if ( formats != null )
+        {
+                for (String format : formats.split(","))
                 {
-                    continue;
+                        // Remove the protocol number, i.e. just list 'rss' or' atom'
+                        String[] parts = format.split("_");
+                        if (parts.length < 1)
+                        {
+                            continue;
+                        }
+
+                        String feedFormat = parts[0].trim()+"+xml";
+
+                        String feedURL = contextPath+"/feed/"+format.trim()+"/site";
+                        
+                        if(null != filterQueryString && !"".equals(filterQueryString)){   
+                            
+                            feedURL += "/"+filterQueryString;
+                        }
+                        pageMeta.addMetadata("feed", feedFormat).addContent(feedURL);
                 }
-
-				String feedFormat = parts[0].trim()+"+xml";
-
-				String feedURL = contextPath+"/feed/"+format.trim()+"/site";
-				pageMeta.addMetadata("feed", feedFormat).addContent(feedURL);
-			}
-		}
+        }
     }
 }

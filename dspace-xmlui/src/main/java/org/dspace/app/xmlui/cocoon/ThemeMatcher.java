@@ -107,26 +107,26 @@ public class ThemeMatcher extends AbstractLogEnabled implements Matcher {
 			for (Theme rule : rules) {
 				getLogger().debug("rule=" + rule.getName());
 				if (!(rule.hasRegex() || rule.hasHandle()))
-                {
-                    // Skip any rule without a pattern or handle
-                    continue;
-                }
+                                {
+                                    // Skip any rule without a pattern or handle
+                                    continue;
+                                }
 
 				getLogger().debug("checking for patterns");
 				if (rule.hasRegex()) {
 					// If the rule has a pattern ensure that the URL matches it.
 					Pattern pattern = rule.getPattern();
 					if (!pattern.matcher(uri).find())
-                    {
-                        continue;
-                    }
+                                        {
+                                            continue;
+                                        }
 				}
 
 				getLogger().debug("checking for handles");
 				if (rule.hasHandle() && !HandleUtil.inheritsFrom(dso, rule.getHandle()))
-                {
-                    continue;
-                }
+                                {
+                                    continue;
+                                }
 
 				getLogger().debug("rule selected!!");
 				Map<String, String> result = new HashMap<String, String>();

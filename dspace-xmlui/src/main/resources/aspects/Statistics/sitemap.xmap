@@ -9,32 +9,32 @@
 
 -->
 <map:sitemap xmlns:map="http://apache.org/cocoon/sitemap/1.0">
-	<map:components>
-		<map:transformers>
-			<map:transformer name="StatisticsTransformer" src="org.dspace.app.xmlui.aspect.statistics.StatisticsTransformer"/>
-			<map:transformer name="Navigation" src="org.dspace.app.xmlui.aspect.statistics.Navigation"/>
+    <map:components>
+        <map:transformers>
+            <map:transformer name="StatisticsTransformer" src="org.dspace.app.xmlui.aspect.statistics.StatisticsTransformer"/>
+            <map:transformer name="Navigation" src="org.dspace.app.xmlui.aspect.statistics.Navigation"/>
             <map:transformer name="RestrictedItem" src="org.dspace.app.xmlui.aspect.artifactbrowser.RestrictedItem"/>
             <map:transformer name="StatisticsSearchResultTransformer" src="org.dspace.app.xmlui.aspect.statistics.StatisticsSearchResultTransformer"/>
             <map:transformer name="StatisticsSearchTransformer" src="org.dspace.app.xmlui.aspect.statistics.StatisticsSearchTransformer"/>
             <map:transformer name="StatisticsWorkflowTransformer" src="org.dspace.app.xmlui.aspect.statistics.StatisticsWorkflowTransformer"/>
         </map:transformers>
-		<map:matchers default="wildcard">
+        <map:matchers default="wildcard">
             <map:matcher name="HandleAuthorizedMatcher" src="org.dspace.app.xmlui.aspect.general.HandleAuthorizedMatcher"/>
-			<map:matcher name="HandleTypeMatcher" src="org.dspace.app.xmlui.aspect.general.HandleTypeMatcher"/>
-			<map:matcher name="StatisticsAuthorizedMatcher" src="org.dspace.app.xmlui.aspect.statistics.StatisticsAuthorizedMatcher"/>
-		</map:matchers>
+            <map:matcher name="HandleTypeMatcher" src="org.dspace.app.xmlui.aspect.general.HandleTypeMatcher"/>
+            <map:matcher name="StatisticsAuthorizedMatcher" src="org.dspace.app.xmlui.aspect.statistics.StatisticsAuthorizedMatcher"/>
+        </map:matchers>
         <map:selectors>
             <map:selector name="AuthenticatedSelector" src="org.dspace.app.xmlui.aspect.general.AuthenticatedSelector"/>
         </map:selectors>
         <map:actions>
             <map:action name="SearchResultLogAction" src="org.dspace.app.xmlui.aspect.statistics.SearchResultLogAction" />
         </map:actions>
-	</map:components>
+    </map:components>
     
-	<map:pipelines>
-		<map:pipeline>
+    <map:pipelines>
+        <map:pipeline>
 
-			<map:generate/>
+            <map:generate/>
 
             <!--Make sure that the home page also receives statistics-->
             <map:match pattern="">
@@ -104,17 +104,17 @@
                     <map:parameter name="type" value="usage"/>
 
                     <map:select type="AuthenticatedSelector">
-                            <map:when test="eperson">
-                                    <map:transform type="RestrictedItem"/>
-                                    <map:serialize/>
-                            </map:when>
-                            <map:otherwise>
-                                    <map:act type="StartAuthentication">
-                                            <map:parameter name="header" value="xmlui.ArtifactBrowser.RestrictedItem.auth_header"/>
-                                            <map:parameter name="message" value="xmlui.ArtifactBrowser.RestrictedItem.auth_message"/>
-                                    </map:act>
-                                    <map:serialize/>
-                            </map:otherwise>
+                        <map:when test="eperson">
+                            <map:transform type="RestrictedItem"/>
+                            <map:serialize/>
+                        </map:when>
+                        <map:otherwise>
+                            <map:act type="StartAuthentication">
+                                <map:parameter name="header" value="xmlui.ArtifactBrowser.RestrictedItem.auth_header"/>
+                                <map:parameter name="message" value="xmlui.ArtifactBrowser.RestrictedItem.auth_message"/>
+                            </map:act>
+                            <map:serialize/>
+                        </map:otherwise>
                     </map:select>
                 </map:match>
             </map:match>
@@ -136,17 +136,17 @@
                     <map:parameter name="type" value="search"/>
 
                     <map:select type="AuthenticatedSelector">
-                            <map:when test="eperson">
-                                    <map:transform type="RestrictedItem"/>
-                                    <map:serialize/>
-                            </map:when>
-                            <map:otherwise>
-                                    <map:act type="StartAuthentication">
-                                            <map:parameter name="header" value="xmlui.ArtifactBrowser.RestrictedItem.auth_header"/>
-                                            <map:parameter name="message" value="xmlui.ArtifactBrowser.RestrictedItem.auth_message"/>
-                                    </map:act>
-                                    <map:serialize/>
-                            </map:otherwise>
+                        <map:when test="eperson">
+                            <map:transform type="RestrictedItem"/>
+                            <map:serialize/>
+                        </map:when>
+                        <map:otherwise>
+                            <map:act type="StartAuthentication">
+                                <map:parameter name="header" value="xmlui.ArtifactBrowser.RestrictedItem.auth_header"/>
+                                <map:parameter name="message" value="xmlui.ArtifactBrowser.RestrictedItem.auth_message"/>
+                            </map:act>
+                            <map:serialize/>
+                        </map:otherwise>
                     </map:select>
                 </map:match>
             </map:match>
@@ -168,17 +168,17 @@
                     <map:parameter name="type" value="workflow"/>
 
                     <map:select type="AuthenticatedSelector">
-                            <map:when test="eperson">
-                                    <map:transform type="RestrictedItem"/>
-                                    <map:serialize/>
-                            </map:when>
-                            <map:otherwise>
-                                    <map:act type="StartAuthentication">
-                                            <map:parameter name="header" value="xmlui.ArtifactBrowser.RestrictedItem.auth_header"/>
-                                            <map:parameter name="message" value="xmlui.ArtifactBrowser.RestrictedItem.auth_message"/>
-                                    </map:act>
-                                    <map:serialize/>
-                            </map:otherwise>
+                        <map:when test="eperson">
+                            <map:transform type="RestrictedItem"/>
+                            <map:serialize/>
+                        </map:when>
+                        <map:otherwise>
+                            <map:act type="StartAuthentication">
+                                <map:parameter name="header" value="xmlui.ArtifactBrowser.RestrictedItem.auth_header"/>
+                                <map:parameter name="message" value="xmlui.ArtifactBrowser.RestrictedItem.auth_message"/>
+                            </map:act>
+                            <map:serialize/>
+                        </map:otherwise>
                     </map:select>
                 </map:match>
             </map:match>
@@ -222,21 +222,21 @@
             <!-- Handle specific features -->
             <map:match pattern="handle/*/**">
                 <!-- Logging in case of a search result -->
-               <map:match pattern="handle/*/*">
-                   <!-- Make sure we have a search result by checking the parameter -->
-                   <map:match type="request-parameter" pattern="search-result">
-                       <map:match type="HandleAuthorizedMatcher" pattern="READ">
-                           <map:match type="HandleTypeMatcher" pattern="community">
-                               <map:act type="SearchResultLogAction"/>
-                           </map:match>
-                           <map:match type="HandleTypeMatcher" pattern="collection">
-                               <map:act type="SearchResultLogAction"/>
-                           </map:match>
-                           <map:match type="HandleTypeMatcher" pattern="item">
-                               <map:act type="SearchResultLogAction"/>
-                           </map:match>
-                       </map:match>
-                   </map:match>
+                <map:match pattern="handle/*/*">
+                    <!-- Make sure we have a search result by checking the parameter -->
+                    <map:match type="request-parameter" pattern="search-result">
+                        <map:match type="HandleAuthorizedMatcher" pattern="READ">
+                            <map:match type="HandleTypeMatcher" pattern="community">
+                                <map:act type="SearchResultLogAction"/>
+                            </map:match>
+                            <map:match type="HandleTypeMatcher" pattern="collection">
+                                <map:act type="SearchResultLogAction"/>
+                            </map:match>
+                            <map:match type="HandleTypeMatcher" pattern="item">
+                                <map:act type="SearchResultLogAction"/>
+                            </map:match>
+                        </map:match>
+                    </map:match>
                 </map:match>
                 <!-- Scoped browse by features -->
                 <map:match type="HandleAuthorizedMatcher" pattern="READ">
@@ -289,8 +289,8 @@
             <!-- End match handle/*/** -->
 
 
-        <map:serialize type="xml"/>
+            <map:serialize type="xml"/>
 
         </map:pipeline>
-	</map:pipelines>
+    </map:pipelines>
 </map:sitemap>

@@ -1983,13 +1983,13 @@ public class SolrServiceImpl implements SearchService, IndexingService {
                 }
             }
             return result;
-		} catch (Exception e)
+        } catch (Exception e)
         {
 			// Any acception that we get ignore it.
 			// We do NOT want any crashed to shown by the user
             log.error(LogManager.getHeader(context, "Error while quering solr", "Queyr: " + query), e);
             return new ArrayList<DSpaceObject>(0);
-		}
+        }
     }
 
     public DiscoverFilterQuery toFilterQuery(Context context, String field, String operator, String value) throws SQLException{

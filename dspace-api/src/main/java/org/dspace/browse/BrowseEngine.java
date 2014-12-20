@@ -74,8 +74,7 @@ public class BrowseEngine
      * @return      the results of the browse
      * @throws BrowseException
      */
-    public BrowseInfo browse(BrowserScope bs)
-        throws BrowseException
+    public BrowseInfo browse(BrowserScope bs) throws BrowseException
     {
         log.debug(LogManager.getHeader(context, "browse", ""));
 
@@ -163,6 +162,36 @@ public class BrowseEngine
         // now run the query
         List<BrowseItem> results = dao.doQuery();
 
+        // construct the mostly empty BrowseInfo object to pass back
+        BrowseInfo browseInfo = new BrowseInfo(results, 0, scope.getResultsPerPage(), 0);
+
+        // add the browse index to the Browse Info
+        browseInfo.setBrowseIndex(browseIndex);
+
+        // set the sort option for the Browse Info
+        browseInfo.setSortOption(scope.getSortOption());
+
+        // tell the Browse Info which way we are sorting
+        browseInfo.setAscending(scope.isAscending());
+
+        // tell the browse info what the container for the browse was
+        if (scope.inCollection() || scope.inCommunity())
+        {
+            browseInfo.setBrowseContainer(scope.getBrowseContainer());
+        }
+
+        browseInfo.setResultsPerPage(scope.getResultsPerPage());
+
+        browseInfo.setEtAl(scope.getEtAl());
+
+        return browseInfo;
+    }
+    
+    public BrowseInfo browseMiniWithResults(BrowserScope bs, List<BrowseItem> results)
+        throws BrowseException
+    {
+        this.scope = bs;
+        
         // construct the mostly empty BrowseInfo object to pass back
         BrowseInfo browseInfo = new BrowseInfo(results, 0, scope.getResultsPerPage(), 0);
 

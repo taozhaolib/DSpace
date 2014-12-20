@@ -154,23 +154,23 @@ public class CollectionViewer extends AbstractDSpaceTransformer implements Cache
         
         // Add RSS links if available
         String formats = ConfigurationManager.getProperty("webui.feed.formats");
-		if ( formats != null )
-		{
-			for (String format : formats.split(","))
-			{
-				// Remove the protocol number, i.e. just list 'rss' or' atom'
-				String[] parts = format.split("_");
-				if (parts.length < 1)
+        if ( formats != null )
+        {
+                for (String format : formats.split(","))
                 {
-                    continue;
+                        // Remove the protocol number, i.e. just list 'rss' or' atom'
+                        String[] parts = format.split("_");
+                        if (parts.length < 1)
+                        {
+                            continue;
+                        }
+
+                        String feedFormat = parts[0].trim()+"+xml";
+
+                        String feedURL = contextPath+"/feed/"+format.trim()+"/"+collection.getHandle();
+                        pageMeta.addMetadata("feed", feedFormat).addContent(feedURL);
                 }
-				
-				String feedFormat = parts[0].trim()+"+xml";
-					
-				String feedURL = contextPath+"/feed/"+format.trim()+"/"+collection.getHandle();
-				pageMeta.addMetadata("feed", feedFormat).addContent(feedURL);
-			}
-		}
+        }
     }
 
     /**

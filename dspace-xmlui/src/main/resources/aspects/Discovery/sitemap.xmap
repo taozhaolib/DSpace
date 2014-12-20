@@ -109,18 +109,19 @@ and searching the repository.
 
 
 			<!-- Search -->
-			<map:match pattern="discover">
+            <map:match pattern="discover">
                 <map:act type="DiscoverySearchLoggerAction"/>
 				<map:transform type="SidebarFacetsTransformer"/>
                 <map:transform type="SimpleSearch"/>
+                <map:transform type="FrontPageFeeds"/>
                 <map:transform type="IncludePageMeta">
                     <map:parameter name="stylesheet.screen.discovery#1" value="../../static/css/discovery/discovery-style.css"/>
 
                     <map:parameter name="javascript.static#1" value="loadJQuery.js"/>
                     <map:parameter name="javascript.static#2" value="static/js/discovery/search-controls.js"/>
                 </map:transform>
-				<map:serialize type="xml"/>
-			</map:match>
+		<map:serialize type="xml"/>
+            </map:match>
 
             <!--<map:match pattern="browse-discovery">-->
 				<!--<map:transform type="BrowseFacet"/>-->
@@ -168,6 +169,7 @@ and searching the repository.
                             <map:transform type="RecentSubmissionTransformer">
                                 <map:parameter name="isHomePage" value="false"/>
                             </map:transform>
+                            <map:transform type="FrontPageFeeds"/>
                             <map:serialize type="xml"/>
                         </map:match>
 

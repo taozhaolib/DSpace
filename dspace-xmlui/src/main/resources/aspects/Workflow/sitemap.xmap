@@ -139,6 +139,10 @@
           <map:serialize type="xml"/>
 
         </map:when>
+        
+        
+        
+        
         <map:otherwise>
 
           <!-- non-authenticated users -->

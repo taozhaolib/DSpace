@@ -186,7 +186,7 @@ public class SolrBrowseDAO implements BrowseDAO
             }
             try
             {
-				sResponse = searcher.search(context, query, itemsWithdrawn
+		sResponse = searcher.search(context, query, itemsWithdrawn
 						|| !itemsDiscoverable);
             }
             catch (SearchServiceException e)
