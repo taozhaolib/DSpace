@@ -119,9 +119,9 @@ public class AddEPersonForm extends AbstractDSpaceTransformer
 		if (errorString != null)
 		{
 			for (String error : errorString.split(","))
-            {
-                errors.add(error);
-            }
+                        {
+                            errors.add(error);
+                        }
 		}
 	
 		String emailValue = request.getParameter("email_address");
@@ -143,20 +143,20 @@ public class AddEPersonForm extends AbstractDSpaceTransformer
 	    	problem.addHighlight("bold").addContent(T_email_taken);
 	    }
                 
-        List identity = add.addList("identity",List.TYPE_FORM);
-        identity.setHead(T_head2);       
-        
-        Text email = identity.addItem().addText("email_address");
-        email.setRequired();
-        email.setAutofocus("autofocus");
-        email.setLabel(T_email_address);
-        email.setValue(emailValue);
-        if (errors.contains("eperson_email_key")) {
-        	email.addError(T_error_email_unique);
-        }
-        else if (errors.contains("email_address")) {
-        	email.addError(T_error_email);
-        }
+            List identity = add.addList("identity",List.TYPE_FORM);
+            identity.setHead(T_head2);       
+
+            Text email = identity.addItem().addText("email_address");
+            email.setRequired();
+            email.setAutofocus("autofocus");
+            email.setLabel(T_email_address);
+            email.setValue(emailValue);
+            if (errors.contains("eperson_email_key")) {
+                    email.addError(T_error_email_unique);
+            }
+            else if (errors.contains("email_address")) {
+                    email.addError(T_error_email);
+            }
         
         Text firstName = identity.addItem().addText("first_name");
         firstName.setRequired();
