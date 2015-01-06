@@ -7,7 +7,11 @@
  */
 package org.dspace.discovery;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
@@ -31,8 +35,7 @@ import java.util.Vector;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.collections.Transformer;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
@@ -42,6 +45,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -61,7 +65,7 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
-import org.dspace.content.DCValue;
+import org.dspace.content.Metadatum;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.content.ItemIterator;
@@ -86,6 +90,7 @@ import org.dspace.discovery.configuration.DiscoverySortConfiguration;
 import org.dspace.discovery.configuration.DiscoverySortFieldConfiguration;
 import org.dspace.discovery.configuration.HierarchicalSidebarFacetConfiguration;
 import org.dspace.handle.HandleManager;
+import org.dspace.storage.rdbms.DatabaseUtils;
 import org.dspace.utils.DSpace;
 import org.springframework.stereotype.Service;
 
@@ -137,7 +142,7 @@ public class SolrServiceImpl implements SearchService, IndexingService {
             String solrService = new DSpace().getConfigurationService().getProperty("discovery.search.server");
 
             UrlValidator urlValidator = new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS);
-            if (urlValidator.isValid(solrService))
+            if (urlValidator.isValid(solrService)||ConfigurationManager.getBooleanProperty("discovery","solr.url.validation.enabled",true))
             {
                 try {
                     log.debug("Solr URL: " + solrService);
@@ -148,9 +153,13 @@ public class SolrServiceImpl implements SearchService, IndexingService {
                     SolrQuery solrQuery = new SolrQuery()
                             .setQuery("search.resourcetype:2 AND search.resourceid:1");
 
-                    solr.query(solrQuery);                
+                    solr.query(solrQuery);
+
+                    // As long as Solr initialized, check with DatabaseUtils to see
+                    // if a reindex is in order. If so, reindex everything
+                    DatabaseUtils.checkReindexDiscovery(this);
                 } catch (SolrServerException e) {
-                    log.error("Error while initialinging solr server", e);
+                    log.error("Error while initializing solr server", e);
                 }
             }
             else
@@ -962,8 +971,9 @@ public class SolrServiceImpl implements SearchService, IndexingService {
                 }
             }
 
-            DCValue[] mydc = item.getMetadata(Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-            for (DCValue meta : mydc)
+            List<String> toIgnoreMetadataFields = SearchUtils.getIgnoredMetadataFields(item.getType());
+            Metadatum[] mydc = item.getMetadata(Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+            for (Metadatum meta : mydc)
             {
                 String field = meta.schema + "." + meta.element;
                 String unqualifiedField = field;
@@ -980,7 +990,6 @@ public class SolrServiceImpl implements SearchService, IndexingService {
                     field += "." + meta.qualifier;
                 }
 
-                List<String> toIgnoreMetadataFields = SearchUtils.getIgnoredMetadataFields(item.getType());
                 //We are not indexing provenance, this is useless
                 if (toIgnoreMetadataFields != null && (toIgnoreMetadataFields.contains(field) || toIgnoreMetadataFields.contains(unqualifiedField + "." + Item.ANY)))
                 {
@@ -1316,7 +1325,7 @@ public class SolrServiceImpl implements SearchService, IndexingService {
 
         try {
 
-            DCValue[] values = item.getMetadata("dc.relation.ispartof");
+            Metadatum[] values = item.getMetadataByMetadataString("dc.relation.ispartof");
 
             if(values != null && values.length > 0 && values[0] != null && values[0].value != null)
             {
@@ -1756,9 +1765,9 @@ public class SolrServiceImpl implements SearchService, IndexingService {
         urlBuilder.append(solrQuery.toString());
 
         try {
-            GetMethod get = new GetMethod(urlBuilder.toString());
-            new HttpClient().executeMethod(get);
-            return get.getResponseBodyAsStream();
+            HttpGet get = new HttpGet(urlBuilder.toString());
+            HttpResponse response = new DefaultHttpClient().execute(get);
+            return response.getEntity().getContent();
 
         } catch (Exception e)
         {
@@ -1870,10 +1879,15 @@ public class SolrServiceImpl implements SearchService, IndexingService {
                     //We have a facet query, the values looks something like: dateissued.year:[1990 TO 2000] AND -2000
                     //Prepare the string from {facet.field.name}:[startyear TO endyear] to startyear - endyear
                     String facetField = facetQuery.substring(0, facetQuery.indexOf(":"));
-                    String name = facetQuery.substring(facetQuery.indexOf('[') + 1);
-                    name = name.substring(0, name.lastIndexOf(']')).replaceAll("TO", "-");
-                    String filter = facetQuery.substring(facetQuery.indexOf('['));
-                    filter = filter.substring(0, filter.lastIndexOf(']') + 1);
+                    String name = "";
+                    String filter = "";
+                    if (facetQuery.indexOf('[') > -1 && facetQuery.lastIndexOf(']') > -1)
+                    {
+                        name = facetQuery.substring(facetQuery.indexOf('[') + 1);
+                        name = name.substring(0, name.lastIndexOf(']')).replaceAll("TO", "-");
+                        filter = facetQuery.substring(facetQuery.indexOf('['));
+                        filter = filter.substring(0, filter.lastIndexOf(']') + 1);
+                    }
 
                     Integer count = sortedFacetQueries.get(facetQuery);
 

@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.DCValue;
+import org.dspace.content.Metadatum;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.FormatIdentifier;
 import org.dspace.content.Item;
@@ -328,7 +328,8 @@ public class DOIIdentifierProvider
         }
         
         doiRow.setColumn("status", IS_REGISTERED);
-        DatabaseManager.update(context, doiRow);        
+        DatabaseManager.update(context, doiRow);
+        dso.resetIdentifiersCache();
     }
     
     public void updateMetadata(Context context, DSpaceObject dso, String identifier)
@@ -847,8 +848,8 @@ public class DOIIdentifierProvider
         }
         Item item = (Item)dso;
 
-        DCValue[] metadata = item.getMetadata(MD_SCHEMA, DOI_ELEMENT, DOI_QUALIFIER, null);
-        for (DCValue id : metadata)
+        Metadatum[] metadata = item.getMetadata(MD_SCHEMA, DOI_ELEMENT, DOI_QUALIFIER, null);
+        for (Metadatum id : metadata)
         {
             if (id.value.startsWith(DOI.RESOLVER + "/10."))
             {
@@ -910,10 +911,10 @@ public class DOIIdentifierProvider
         }
         Item item = (Item)dso;
 
-        DCValue[] metadata = item.getMetadata(MD_SCHEMA, DOI_ELEMENT, DOI_QUALIFIER, null);
+        Metadatum[] metadata = item.getMetadata(MD_SCHEMA, DOI_ELEMENT, DOI_QUALIFIER, null);
         List<String> remainder = new ArrayList<String>();
 
-        for (DCValue id : metadata)
+        for (Metadatum id : metadata)
         {
             if (!id.value.equals(DOI.DOIToExternalForm(doi)))
             {
