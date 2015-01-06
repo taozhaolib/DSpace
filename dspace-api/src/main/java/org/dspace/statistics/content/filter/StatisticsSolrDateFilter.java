@@ -86,7 +86,7 @@ public class StatisticsSolrDateFilter implements StatisticsFilter {
                 startCal.clear(Calendar.MONTH);
                 startCal.set(Calendar.DATE, 1);
                 dateType = Calendar.YEAR;
-            } else
+            } else if(!typeStr.equalsIgnoreCase("calendar-date"))
             {
                 return "";
             }
@@ -94,25 +94,53 @@ public class StatisticsSolrDateFilter implements StatisticsFilter {
             Calendar endCal = (Calendar) startCal.clone();
 
             if (startDate == null)
-            {
-                if(startStr.startsWith("+"))
-                {
-                    startStr = startStr.substring(startStr.indexOf('+') + 1);
+            {                
+                if(!typeStr.equalsIgnoreCase("calendar-date")){
+                    if(startStr.startsWith("+"))
+                    {
+                        startStr = startStr.substring(startStr.indexOf('+') + 1);
+                    }
+                    startCal.add(dateType, Integer.parseInt(startStr));
+                    startDate = startCal.getTime();
                 }
-
-                startCal.add(dateType, Integer.parseInt(startStr));
-                startDate = startCal.getTime();
+                else{
+                    try{
+                        String[] dateArr = startStr.split("-");
+                        startCal.set(Calendar.YEAR, Integer.parseInt(dateArr[0]));
+                        startCal.set(Calendar.MONTH, Integer.parseInt(dateArr[1]));
+                        startCal.set(Calendar.DATE, Integer.parseInt(dateArr[2]));
+                        startDate = startCal.getTime();
+                    }
+                    catch(Exception exp){
+                        System.out.println("The interpretation of start date in time range box is wrong!\n");
+                        exp.printStackTrace();
+                    }
+                }
             }
 
             if (endDate == null)
-            {
-                if(endStr.startsWith("+"))
-                {
-                    endStr = endStr.substring(endStr.indexOf('+') + 1);
+            {                
+                if(!typeStr.equalsIgnoreCase("calendar-date")){
+                    if(endStr.startsWith("+"))
+                    {
+                        endStr = endStr.substring(endStr.indexOf('+') + 1);
+                    }
+                    endCal.add(dateType, Integer.parseInt(endStr));
+                    endDate = endCal.getTime();
                 }
-
-                endCal.add(dateType, Integer.parseInt(endStr));
-                endDate = endCal.getTime();
+                else{
+                    try{
+                        String[] dateArr = endStr.split("-");
+                        endCal.set(Calendar.YEAR, Integer.parseInt(dateArr[0]));
+                        endCal.set(Calendar.MONTH, Integer.parseInt(dateArr[1]));
+                        endCal.set(Calendar.DATE, Integer.parseInt(dateArr[2]));
+                        endDate = endCal.getTime();
+                    }
+                    catch(Exception exp){
+                        System.out.println("The interpretation of end date in time range box is wrong!\n");
+                        exp.printStackTrace();
+                    }
+                }
             }
         }
 

@@ -61,6 +61,7 @@
 
                     <map:transform type="IncludePageMeta">
                         <map:parameter name="javascript.static.statistics#1" value="loadJQuery.js"/>
+                        <map:parameter name="javascript.static#2" value="static/js/statisticsElasticSearch/jquery.ui.datepicker-accessible.min.js"/>
                         <map:parameter name="javascript.static.statistics#2" value="static/js/usage-statistics.js"/>
                     </map:transform>
                     <map:transform type="StatisticsSearchTransformer"/>
@@ -126,6 +127,7 @@
 
                     <map:transform type="IncludePageMeta">
                         <map:parameter name="javascript.static.statistics#1" value="loadJQuery.js"/>
+                        <map:parameter name="javascript.static#2" value="static/js/statisticsElasticSearch/jquery.ui.datepicker-accessible.min.js"/>
                         <map:parameter name="javascript.static.statistics#2" value="static/js/usage-statistics.js"/>
                     </map:transform>
                     <map:transform type="StatisticsSearchTransformer"/>

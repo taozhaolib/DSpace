@@ -736,7 +736,6 @@
     <message key="xmlui.Submission.submit.AccessStep.error_missing_date">When Embargo selected, date is required</message>
     <message key="xmlui.Submission.submit.AccessStep.error_duplicated_policy">An identical policy for this group and this action is already in place.</message>
     <message key="xmlui.Submission.submit.AccessStep.table_policies">Group policies</message>
-    <message key="xmlui.Submission.submit.AccessStep.policies_help">Policies listed in this section override any default policies for the collection you're submitting to. If you wish to set an embargo but the target collection allows access for any user, you must set a policy that allows access for the Anonymous group only from a specific date onwards.</message>
     <message key="xmlui.Submission.submit.AccessStep.no_policies">No group policies have been set up for this item.</message>
     <message key="xmlui.Submission.submit.AccessStep.new_policy_head">Embargo</message>
     <message key="xmlui.Submission.submit.AccessStep.private_settings">Private item</message>
@@ -2003,6 +2002,10 @@
     <message key="xmlui.statistics.StatisticsSearchTransformer.time-filter.last-6-months">Previous 6 months</message>
     <message key="xmlui.statistics.StatisticsSearchTransformer.time-filter.last-year">Previous year</message>
     <message key="xmlui.statistics.StatisticsSearchTransformer.time-filter.overall">Overall</message>
+    <message key="xmlui.statistics.StatisticsSearchTransformer.time-range-filter.time-range-heading">Search Using a Date Range:</message>
+    <message key="xmlui.statistics.StatisticsSearchTransformer.time-range-filter.start-date">Start Date</message>
+    <message key="xmlui.statistics.StatisticsSearchTransformer.time-range-filter.end-date">End Date</message>
+    <message key="xmlui.statistics.StatisticsSearchTransformer.time-range-filter.btn-name">Search</message>
 
 
     <message key="xmlui.statistics.display.table.column-label.search-terms">Search Term</message>
