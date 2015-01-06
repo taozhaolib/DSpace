@@ -35,7 +35,11 @@ public abstract class AbstractStatisticsDataTransformer extends AbstractDSpaceTr
     private static final Message T_time_filter_overall = message("xmlui.statistics.StatisticsSearchTransformer.time-filter.overall");
     private static final Message T_time_filter_last_year = message("xmlui.statistics.StatisticsSearchTransformer.time-filter.last-year");
     private static final Message T_time_filter_last6_months = message("xmlui.statistics.StatisticsSearchTransformer.time-filter.last-6-months");
-
+    private static final Message T_time_range_filter_start_date = message("xmlui.statistics.StatisticsSearchTransformer.time-range-filter.start-date");
+    private static final Message T_time_range_filter_end_date = message("xmlui.statistics.StatisticsSearchTransformer.time-range-filter.end-date");
+    private static final Message T_time_range_filter_heading = message("xmlui.statistics.StatisticsSearchTransformer.time-range-filter.time-range-heading");
+    private static final Message T_time_range_filter_btn_name = message("xmlui.statistics.StatisticsSearchTransformer.time-range-filter.btn-name");
+    
 
     protected void addTimeFilter(Division mainDivision) throws WingException {
         Request request = ObjectModelHelper.getRequest(objectModel);
@@ -47,6 +51,25 @@ public abstract class AbstractStatisticsDataTransformer extends AbstractDSpaceTr
         timeFilter.addOption(StringUtils.equals(selectedTimeFilter, "-12"), "-12", T_time_filter_last_year);
         timeFilter.addOption(StringUtils.isBlank(selectedTimeFilter), "", T_time_filter_overall);
     }
+    
+    protected void addTimeRangeFilter(Division mainDivision) throws WingException {
+        Division timeRangeBox = mainDivision.addDivision("time-range");
+        List timeRangeList = timeRangeBox.addList("time_range_list", List.TYPE_FORM,"horizontal");
+        timeRangeList.setHead(T_time_range_filter_heading);
+        
+        Composite date_range_composite = timeRangeList.addItem().addComposite("date-range-composite");
+                
+        Text startDate = date_range_composite.addText("start_date");
+        //startDate.setAutofocus("autofocus");
+        startDate.setLabel(T_time_range_filter_start_date);
+        
+        Text endDate = date_range_composite.addText("end_date");
+        //endDate.setAutofocus("autofocus");
+        endDate.setLabel(T_time_range_filter_end_date);
+        
+        timeRangeList.addItem().addButton("time_range_filter_btn").setValue(T_time_range_filter_btn_name);        
+        
+    }
 
     protected StatisticsSolrDateFilter getDateFilter(String timeFilter){
         if(StringUtils.isNotEmpty(timeFilter))
@@ -56,6 +79,22 @@ public abstract class AbstractStatisticsDataTransformer extends AbstractDSpaceTr
             dateFilter.setEndStr("0");
             dateFilter.setTypeStr("month");
             return dateFilter;
+        }else{
+            return null;
+        }
+    }
+    
+    protected StatisticsSolrDateFilter getDateRangeFilter(String startDate, String endDate){
+        if(StringUtils.isNotEmpty(startDate))
+        {
+            StatisticsSolrDateFilter dateRangeFilter = new StatisticsSolrDateFilter();
+            dateRangeFilter.setStartStr(startDate);
+            if(StringUtils.isNotEmpty(startDate))
+                dateRangeFilter.setEndStr(endDate);
+            else
+                dateRangeFilter.setEndStr("0");
+            dateRangeFilter.setTypeStr("calendar-date");
+            return dateRangeFilter;
         }else{
             return null;
         }

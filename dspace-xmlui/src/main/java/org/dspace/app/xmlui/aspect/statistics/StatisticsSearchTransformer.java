@@ -66,32 +66,41 @@ public class StatisticsSearchTransformer extends AbstractStatisticsDataTransform
 
     @Override
     public void addBody(Body body) throws SAXException, WingException, SQLException, IOException, AuthorizeException, ProcessingException {
-            //Try to find our dspace object
-            DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
-            Request request = ObjectModelHelper.getRequest(objectModel);
-            String selectedTimeFilter = request.getParameter("time_filter");
+        //Try to find our dspace object
+        DSpaceObject dso = HandleUtil.obtainHandle(objectModel);
+        Request request = ObjectModelHelper.getRequest(objectModel);
+        String selectedTimeFilter = request.getParameter("time_filter");
+        String startDate = request.getParameter("start_date");
+        String endDate   = request.getParameter("end_date");
+        boolean timeRangeSearch = false;
+        String timeRangeFileterBtn = request.getParameter("time_range_filter_btn");
+        if(null != timeRangeFileterBtn && !"".equals(timeRangeFileterBtn))
+            timeRangeSearch = true;
+        
+        StringBuilder actionPath = new StringBuilder().append(request.getContextPath());
+        if(dso != null){
+            actionPath.append("/handle/").append(dso.getHandle());
+        }
+        actionPath.append("/search-statistics");
 
-            StringBuilder actionPath = new StringBuilder().append(request.getContextPath());
-            if(dso != null){
-                actionPath.append("/handle/").append(dso.getHandle());
-            }
-            actionPath.append("/search-statistics");
-
-            Division mainDivision = body.addInteractiveDivision("search-statistics", actionPath.toString(), Division.METHOD_POST, null);
-            if(dso != null){
-                mainDivision.setHead(T_search_head_dso.parameterize(dso.getName()));
-            }else{
-                mainDivision.setHead(T_search_head);
-            }
+        Division mainDivision = body.addInteractiveDivision("search-statistics", actionPath.toString(), Division.METHOD_POST, null);
+        if(dso != null){
+            mainDivision.setHead(T_search_head_dso.parameterize(dso.getName()));
+        }else{
+            mainDivision.setHead(T_search_head);
+        }
         try {
             //Add the time filter box
             Division searchTermsDivision = mainDivision.addDivision("search-terms");
             searchTermsDivision.setHead(T_search_terms_head);
             addTimeFilter(searchTermsDivision);
+            addTimeRangeFilter(searchTermsDivision);
+            mainDivision.addHidden("start_date_hidden").setValue((null != startDate) ? startDate : "");
+            mainDivision.addHidden("end_date_hidden").setValue((null != endDate) ? endDate : "");
 
             //Retrieve the optional time filter
             StatisticsSolrDateFilter dateFilter = getDateFilter(selectedTimeFilter);
-
+            StatisticsSolrDateFilter dateRangeFilter = getDateRangeFilter(startDate, endDate);
 
             StatisticsTable statisticsTable = new StatisticsTable(new StatisticsDataSearches(dso));
 
@@ -102,8 +111,11 @@ public class StatisticsSearchTransformer extends AbstractStatisticsDataTransform
             queryGenerator.setPercentage(true);
             queryGenerator.setRetrievePageViews(true);
             statisticsTable.addDatasetGenerator(queryGenerator);
-            if(dateFilter != null){
+            if(dateFilter != null && timeRangeSearch == false){
                 statisticsTable.addFilter(dateFilter);
+            }
+            else if(null != dateRangeFilter){
+                statisticsTable.addFilter(dateRangeFilter);
             }
 
             addDisplayTable(searchTermsDivision, statisticsTable, true, null);
@@ -118,8 +130,11 @@ public class StatisticsSearchTransformer extends AbstractStatisticsDataTransform
             queryGenerator.setPercentage(true);
             queryGenerator.setRetrievePageViews(true);
             statisticsTable.addDatasetGenerator(queryGenerator);
-            if(dateFilter != null){
+            if(dateFilter != null && timeRangeSearch == false){
                 statisticsTable.addFilter(dateFilter);
+            }
+            else if(null != dateRangeFilter){
+                statisticsTable.addFilter(dateRangeFilter);
             }
 
             addDisplayTable(totalDivision, statisticsTable, false, null);
