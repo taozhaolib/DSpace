@@ -52,8 +52,16 @@ import org.dspace.usage.UsageEvent;
 // Every DSpace class used without namespace is from package
 // org.dspace.rest.common.*. Otherwise namespace is defined.
 @Path("/bitstreams")
-public class BitstreamResource extends Resource
-{
+public class BitstreamResource {
+    Logger log = Logger.getLogger(BitstreamResource.class);
+    
+    private static final boolean writeStatistics;
+	
+	static{
+		writeStatistics=ConfigurationManager.getBooleanProperty("rest","stats",false);
+	}
+
+    //BitstreamList - Not Implemented
 
     private static Logger log = Logger.getLogger(BitstreamResource.class);
 
@@ -84,89 +92,11 @@ public class BitstreamResource extends Resource
      */
     @GET
     @Path("/{bitstream_id}")
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Bitstream getBitstream(@PathParam("bitstream_id") Integer bitstreamId, @QueryParam("expand") String expand,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Reading bitstream(id=" + bitstreamId + ") metadata.");
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    public Bitstream getBitstream(@PathParam("bitstream_id") Integer bitstream_id, @QueryParam("expand") String expand) {
         org.dspace.core.Context context = null;
-        Bitstream bitstream = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Bitstream dspaceBitstream = findBitstream(context, bitstreamId, org.dspace.core.Constants.READ);
-
-            writeStats(dspaceBitstream, UsageEvent.Action.VIEW, user_ip, user_agent, xforwarderfor, headers,
-                    request, context);
-
-            bitstream = new Bitstream(dspaceBitstream, expand);
-            context.complete();
-            log.trace("Bitsream(id=" + bitstreamId + ") was successfully read.");
-
-        }
-        catch (SQLException e)
-        {
-            processException("Someting went wrong while reading bitstream(id=" + bitstreamId + ") from database! Message: " + e,
-                    context);
-        }
-        catch (ContextException e)
-        {
-            processException("Someting went wrong while reading bitstream(id=" + bitstreamId + "), ContextException. Message: "
-                    + e.getMessage(), context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        return bitstream;
-    }
-
-    /**
-     * Return all bitstream resource policies from all bundles, in which
-     * bitstream is.
-     * 
-     * @param bitstreamId
-     *            Id of bitstream in DSpace.
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return It returns array of ResourcePolicy.
-     */
-    @GET
-    @Path("/{bitstream_id}/policy")
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public ResourcePolicy[] getBitstreamPolicies(@PathParam("bitstream_id") Integer bitstreamId, @Context HttpHeaders headers)
-    {
-
-        log.info("Reading bitstream(id=" + bitstreamId + ") policies.");
-        org.dspace.core.Context context = null;
-        List<ResourcePolicy> policies = new ArrayList<ResourcePolicy>();
-
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Bitstream dspaceBitstream = findBitstream(context, bitstreamId, org.dspace.core.Constants.READ);
-
-            Bundle[] bundles = dspaceBitstream.getBundles();
-            for (Bundle bundle : bundles)
-            {
-                List<org.dspace.authorize.ResourcePolicy> bitstreamsPolicies = bundle.getBitstreamPolicies();
-                for (org.dspace.authorize.ResourcePolicy policy : bitstreamsPolicies)
-                {
-                    if (policy.getResourceID() == bitstreamId)
-                    {
-                        policies.add(new ResourcePolicy(policy));
-                    }
-                }
-            }
-            context.complete();
-            log.trace("Policies for bitsream(id=" + bitstreamId + ") was successfully read.");
+        try {
+            context = new org.dspace.core.Context();
 
         }
         catch (SQLException e)
@@ -245,19 +175,17 @@ public class BitstreamResource extends Resource
                     }
                 }
             }
-
-            context.complete();
-            log.trace("Bitstreams were successfully read.");
-
-        }
-        catch (SQLException e)
-        {
-            processException("Something get wrong while reading bitstreams from database!. Message: " + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Something get wrong while reading bitstreams, ContextException. Message: " + e.getMessage(),
-                    context);
+        } catch(SQLException e) {
+            log.error(e.getMessage());
+            throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
+        } finally {
+            if(context != null) {
+                try {
+                    context.complete();
+                } catch (SQLException e) {
+                    log.error(e.getMessage() + " occurred while trying to close");
+                }
+            }
         }
         finally
         {
@@ -291,252 +219,41 @@ public class BitstreamResource extends Resource
      */
     @GET
     @Path("/{bitstream_id}/retrieve")
-    public javax.ws.rs.core.Response getBitstreamData(@PathParam("bitstream_id") Integer bitstreamId,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Reading data of bitstream(id=" + bitstreamId + ").");
+    public javax.ws.rs.core.Response getFile(@PathParam("bitstream_id") final Integer bitstream_id,
+    		@QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent, @QueryParam("xforwarderfor") String xforwarderfor,
+    		@Context HttpHeaders headers, @Context HttpServletRequest request) {
         org.dspace.core.Context context = null;
-        InputStream inputStream = null;
-        String type = null;
+        try {
+            context = new org.dspace.core.Context();
 
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Bitstream dspaceBitstream = findBitstream(context, bitstreamId, org.dspace.core.Constants.READ);
-
-            writeStats(dspaceBitstream, UsageEvent.Action.VIEW, user_ip, user_agent, xforwarderfor, headers,
-                    request, context);
-
-            log.trace("Bitsream(id=" + bitstreamId + ") data was successfully read.");
-            inputStream = dspaceBitstream.retrieve();
-            type = dspaceBitstream.getFormat().getMIMEType();
-
-            context.complete();
-        }
-        catch (IOException e)
-        {
-            processException("Could not read file of bitstream(id=" + bitstreamId + ")! Message: " + e, context);
-        }
-        catch (SQLException e)
-        {
-            processException("Something get wrong while reading bitsream(id=" + bitstreamId + ") from database! Message: " + e,
-                    context);
-        }
-        catch (AuthorizeException e)
-        {
-            processException("Could not retrieve file of bitstream(id=" + bitstreamId + "), AuthorizeException! Message: " + e,
-                    context);
-        }
-        catch (ContextException e)
-        {
-            processException(
-                    "Could not retrieve file of bitstream(id=" + bitstreamId + "), ContextException! Message: " + e.getMessage(),
-                    context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        return Response.ok(inputStream).type(type).build();
-    }
-
-    /**
-     * Add bitstream policy to all bundles in which bitstream is.
-     * 
-     * @param bitstreamId
-     *            Id of bitstream in DSpace.
-     * @param policy
-     *            Policy which will be added. But this atributes does not be
-     *            applied: epersonId,
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return Returns ok, if was all ok. Otherwise status code 500.
-     */
-    @POST
-    @Path("/{bitstream_id}/policy")
-    public javax.ws.rs.core.Response addBitstreamPolicy(@PathParam("bitstream_id") Integer bitstreamId, ResourcePolicy policy,
-            @Context HttpHeaders headers)
-    {
-
-        log.info("Adding bitstream(id=" + bitstreamId + ") READ policy with permission for group(id=" + policy.getGroupId()
-                + ").");
-        org.dspace.core.Context context = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Bitstream dspaceBitstream = findBitstream(context, bitstreamId, org.dspace.core.Constants.READ);
-
-            Bundle[] bundles = dspaceBitstream.getBundles();
-
-            for (Bundle bundle : bundles)
-            {
-                List<org.dspace.authorize.ResourcePolicy> bitstreamsPolicies = bundle.getBitstreamPolicies();
-
-                org.dspace.authorize.ResourcePolicy dspacePolicy = org.dspace.authorize.ResourcePolicy.create(context);
-                dspacePolicy.setAction(policy.getActionInt());
-                dspacePolicy.setGroup(Group.find(context, policy.getGroupId()));
-                dspacePolicy.setResourceID(dspaceBitstream.getID());
-                dspacePolicy.setResource(dspaceBitstream);
-                dspacePolicy.setResourceType(org.dspace.core.Constants.BITSTREAM);
-                dspacePolicy.setStartDate(policy.getStartDate());
-                dspacePolicy.setEndDate(policy.getEndDate());
-                dspacePolicy.setRpDescription(policy.getRpDescription());
-                dspacePolicy.setRpName(policy.getRpName());
-                dspacePolicy.update();
-                // dspacePolicy.setRpType(org.dspace.authorize.ResourcePolicy.TYPE_CUSTOM);
-                bitstreamsPolicies.add(dspacePolicy);
-
-                bundle.replaceAllBitstreamPolicies(bitstreamsPolicies);
-                bundle.update();
+            org.dspace.content.Bitstream bitstream = org.dspace.content.Bitstream.find(context, bitstream_id);
+            if(AuthorizeManager.authorizeActionBoolean(context, bitstream, org.dspace.core.Constants.READ)) {
+            	if(writeStatistics){
+    				writeStats(context, bitstream_id, user_ip, user_agent, xforwarderfor, headers, request);
+    			}
+            	
+                return Response.ok(bitstream.retrieve()).type(bitstream.getFormat().getMIMEType()).build();
+            } else {
+                throw new WebApplicationException(Response.Status.UNAUTHORIZED);
             }
 
-            context.complete();
-            log.trace("Policy for bitsream(id=" + bitstreamId + ") was successfully added.");
-
-        }
-        catch (SQLException e)
-        {
-            processException("Someting went wrong while adding policy to bitstream(id=" + bitstreamId
-                    + "), SQLException! Message: " + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Someting went wrong while adding policy to bitstream(id=" + bitstreamId
-                    + "), ContextException. Message: " + e.getMessage(), context);
-        }
-        catch (AuthorizeException e)
-        {
-            processException("Someting went wrong while adding policy to bitstream(id=" + bitstreamId
-                    + "), AuthorizeException! Message: " + e, context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-        return Response.status(Status.OK).build();
-    }
-
-    /**
-     * Update bitstream metadata. It replace everything on targeted bitstream.
-     * It can throws WebApplicationException caused by two exceptions:
-     * SQLException, if there was problem with database. AuthorizeException if
-     * there was problem with authorization to edit bitstream metadata.
-     * 
-     * @param bitstreamId
-     *            Id of bistream, wich will be updated.
-     * @param bitstream
-     *            Bitstream with will be placed. It muset have filled user
-     *            creditials.
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return Return response codes: OK(200), NOT_FOUND(404) if bitstream does
-     *         not exist and UNAUTHORIZED(401) if user is not allowed to write
-     *         to bitstream.
-     * @throws WebApplicationException
-     *             It can be thrown by: Error in reading from database. Or
-     *             creating context or with authorization to bitstream.
-     */
-    @PUT
-    @Path("/{bitstream_id}")
-    @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Response updateBitstream(@PathParam("bitstream_id") Integer bitstreamId, Bitstream bitstream,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Updating bitstream(id=" + bitstreamId + ") metadata.");
-        org.dspace.core.Context context = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Bitstream dspaceBitstream = findBitstream(context, bitstreamId, org.dspace.core.Constants.WRITE);
-
-            writeStats(dspaceBitstream, UsageEvent.Action.UPDATE, user_ip, user_agent, xforwarderfor,
-                    headers, request, context);
-
-            log.trace("Updating bitstream metadata.");
-            dspaceBitstream.setDescription(bitstream.getDescription());
-            if (getMimeType(bitstream.getName()) == null)
-            {
-                dspaceBitstream.setFormat(BitstreamFormat.findUnknown(context));
-            }
-            else
-            {
-                dspaceBitstream.setFormat(BitstreamFormat.findByMIMEType(context, getMimeType(bitstream.getName())));
-            }
-            dspaceBitstream.setName(bitstream.getName());
-            Integer sequenceId = bitstream.getSequenceId();
-            if (sequenceId != null && sequenceId.intValue() != -1)
-            {
-                dspaceBitstream.setSequenceID(sequenceId);
-            }
-
-            dspaceBitstream.update();
-
-            if (bitstream.getPolicies() != null)
-            {
-                Bundle[] bundles = dspaceBitstream.getBundles();
-                ResourcePolicy[] policies = bitstream.getPolicies();
-                for (Bundle bundle : bundles)
-                {
-                    List<org.dspace.authorize.ResourcePolicy> bitstreamsPolicies = bundle.getBitstreamPolicies();
-                    // Remove old bitstream policies
-                    List<org.dspace.authorize.ResourcePolicy> policiesToRemove = new ArrayList<org.dspace.authorize.ResourcePolicy>();
-                    for (org.dspace.authorize.ResourcePolicy policy : bitstreamsPolicies)
-                    {
-                        if (policy.getResourceID() == dspaceBitstream.getID())
-                        {
-                            policiesToRemove.add(policy);
-                        }
-                    }
-                    for (org.dspace.authorize.ResourcePolicy policy : policiesToRemove)
-                    {
-                        bitstreamsPolicies.remove(policy);
-                    }
-
-                    // Add all new bitstream policies
-                    for (ResourcePolicy policy : policies)
-                    {
-                        org.dspace.authorize.ResourcePolicy dspacePolicy = org.dspace.authorize.ResourcePolicy.create(context);
-                        dspacePolicy.setAction(policy.getActionInt());
-                        dspacePolicy.setGroup(Group.find(context, policy.getGroupId()));
-                        dspacePolicy.setResourceID(dspaceBitstream.getID());
-                        dspacePolicy.setResource(dspaceBitstream);
-                        dspacePolicy.setResourceType(org.dspace.core.Constants.BITSTREAM);
-                        dspacePolicy.setStartDate(policy.getStartDate());
-                        dspacePolicy.setEndDate(policy.getEndDate());
-                        dspacePolicy.setRpDescription(policy.getRpDescription());
-                        dspacePolicy.setRpName(policy.getRpName());
-                        dspacePolicy.update();
-                        bitstreamsPolicies.add(dspacePolicy);
-                    }
-                    bundle.replaceAllBitstreamPolicies(bitstreamsPolicies);
-                    bundle.update();
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
+        } catch (SQLException e) {
+            log.error(e.getMessage());
+            throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
+        } catch (AuthorizeException e) {
+            log.error(e.getMessage());
+            throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+        } finally {
+            if(context != null) {
+                try {
+                    context.complete();
+                } catch (SQLException e) {
+                    log.error(e.getMessage() + " occurred while trying to close");
                 }
             }
-
-            context.complete();
-
-        }
-        catch (SQLException e)
-        {
-            processException("Could not update bitstream(id=" + bitstreamId + ") metadata, SQLException. Message: " + e, context);
-        }
-        catch (AuthorizeException e)
-        {
-            processException("Could not update bitstream(id=" + bitstreamId + ") metadata, AuthorizeException. Message: " + e,
-                    context);
         }
         catch (ContextException e)
         {
@@ -552,6 +269,38 @@ public class BitstreamResource extends Resource
         log.info("Bitstream metadata(id=" + bitstreamId + ") were successfully updated.");
         return Response.ok().build();
     }
+    
+	private void writeStats(org.dspace.core.Context context, Integer bitstream_id, String user_ip, String user_agent,
+			String xforwarderfor, HttpHeaders headers,
+			HttpServletRequest request) {
+		
+    	try{
+    		DSpaceObject bitstream = DSpaceObject.find(context, Constants.BITSTREAM, bitstream_id);
+    		
+    		if(user_ip==null || user_ip.length()==0){
+    			new DSpace().getEventService().fireEvent(
+	                     new UsageEvent(
+	                                     UsageEvent.Action.VIEW,
+	                                     request,
+	                                     context,
+	                                     bitstream));
+    		} else{
+	    		new DSpace().getEventService().fireEvent(
+	                     new UsageEvent(
+	                                     UsageEvent.Action.VIEW,
+	                                     user_ip,
+	                                     user_agent,
+	                                     xforwarderfor,
+	                                     context,
+	                                     bitstream));
+    		}
+    		log.debug("fired event");
+    		
+		} catch(SQLException ex){
+			log.error("SQL exception can't write usageEvent \n" + ex);
+		}
+    		
+	}
 
     /**
      * Update bitstream data. It change bitstream data by editing database rows.

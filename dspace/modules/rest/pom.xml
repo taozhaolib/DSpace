@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.dspace</groupId>
         <artifactId>modules</artifactId>
-        <version>5.0-rc4-SNAPSHOT</version>
+        <version>4.3-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -95,12 +95,7 @@
             <groupId>org.dspace</groupId>
             <artifactId>dspace-rest</artifactId>
             <type>war</type>
-        </dependency>
-        <dependency>
-            <groupId>org.dspace</groupId>
-            <artifactId>dspace-rest</artifactId>
-            <type>jar</type>
-            <classifier>classes</classifier>
+            <version>4.3-SNAPSHOT</version>
         </dependency>
 
         <dependency>

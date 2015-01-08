@@ -9,12 +9,12 @@
         on top of the default XML-UI web application provided with DSpace.
     </description>
 
-    <parent>
-        <groupId>org.dspace</groupId>
-        <artifactId>modules</artifactId>
-        <version>5.0-rc4-SNAPSHOT</version>
-        <relativePath>..</relativePath>
-    </parent>
+   <parent>
+      <groupId>org.dspace</groupId>
+      <artifactId>modules</artifactId>
+      <version>4.3-SNAPSHOT</version>
+      <relativePath>..</relativePath>
+   </parent>
 
     <properties>
         <!-- This is the path to the root [dspace-src] directory. -->

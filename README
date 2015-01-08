@@ -1,4 +1,13 @@
+
 This is Tao Zhao's DSpace development code.
+===================================================================
+Installation instructions may be found in DSpace-Manual.pdf, offered 
+with the source archives in the SourceForge project:
+
+  http://sourceforge.net/projects/dspace/files/DSpace%20Stable/VERSION/
+
+(Replace "VERSION" with the version you are installing, such as "4.0".)
+>>>>>>> origin/dspace-4_x
 
 DSpace version information can be viewed online at
  - https://wiki.duraspace.org/display/DSDOC/

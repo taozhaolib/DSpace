@@ -61,576 +61,26 @@ import org.dspace.usage.UsageEvent;
 public class ItemsResource extends Resource
 {
 
-    private static final Logger log = Logger.getLogger(ItemsResource.class);
-
-    /**
-     * Return item properties without metadata and bitstreams. You can add
-     * additional properties by parameter expand.
-     * 
-     * @param itemId
-     *            Id of item in DSpace.
-     * @param expand
-     *            String which define, what additional properties will be in
-     *            returned item. Options are separeted by commas and are: "all",
-     *            "metadata", "parentCollection", "parentCollectionList",
-     *            "parentCommunityList" and "bitstreams".
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return If user is allowed to read item, it returns item. Otherwise is
-     *         thrown WebApplicationException with response status
-     *         UNAUTHORIZED(401) or NOT_FOUND(404) if was id incorrect.
-     * @throws WebApplicationException
-     *             This exception can be throw by NOT_FOUND(bad id of item),
-     *             UNAUTHORIZED, SQLException if wasproblem with reading from
-     *             database and ContextException, if there was problem with
-     *             creating context of DSpace.
-     */
     @GET
     @Path("/{item_id}")
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Item getItem(@PathParam("item_id") Integer itemId, @QueryParam("expand") String expand,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    public org.dspace.rest.common.Item getItem(@PathParam("item_id") Integer item_id, @QueryParam("expand") String expand,
+    		@QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent, @QueryParam("xforwarderfor") String xforwarderfor,
+    		@Context HttpHeaders headers, @Context HttpServletRequest request) throws WebApplicationException {
 
-        log.info("Reading item(id=" + itemId + ").");
         org.dspace.core.Context context = null;
-        Item item = null;
+        try {
+            context = new org.dspace.core.Context();
 
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Item dspaceItem = findItem(context, itemId, org.dspace.core.Constants.READ);
+            org.dspace.content.Item item = org.dspace.content.Item.find(context, item_id);
 
-            writeStats(dspaceItem, UsageEvent.Action.VIEW, user_ip, user_agent, xforwarderfor, headers, request, context);
-
-            item = new Item(dspaceItem, expand, context);
-            context.complete();
-            log.trace("Item(id=" + itemId + ") was successfully read.");
-
-        }
-        catch (SQLException e)
-        {
-            processException("Could not read item(id=" + itemId + "), SQLException. Message: " + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not read item(id=" + itemId + "), ContextException. Message: " + e.getMessage(), context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        return item;
-    }
-
-    /**
-     * It returns an array of items in DSpace. You can define how many items in
-     * list will be and from which index will start. Items in list are sorted by
-     * handle, not by id.
-     * 
-     * @param limit
-     *            How many items in array will be. Default value is 100.
-     * @param offset
-     *            On which index will array start. Default value is 0.
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return Return array of items, on which has logged user into context
-     *         permission.
-     * @throws WebApplicationException
-     *             It can be thrown by SQLException, when was problem with
-     *             reading items from database or ContextException, when was
-     *             problem with creating context of DSpace.
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Item[] getItems(@QueryParam("expand") String expand, @QueryParam("limit") @DefaultValue("100") Integer limit,
-            @QueryParam("offset") @DefaultValue("0") Integer offset, @QueryParam("userIP") String user_ip,
-            @QueryParam("userAgent") String user_agent, @QueryParam("xforwarderfor") String xforwarderfor,
-            @Context HttpHeaders headers, @Context HttpServletRequest request) throws WebApplicationException
-    {
-
-        log.info("Reading items.(offset=" + offset + ",limit=" + limit + ").");
-        org.dspace.core.Context context = null;
-        List<Item> items = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-
-            ItemIterator dspaceItems = org.dspace.content.Item.findAllUnfiltered(context);
-            items = new ArrayList<Item>();
-
-            if (!((limit != null) && (limit >= 0) && (offset != null) && (offset >= 0)))
-            {
-                log.warn("Pagging was badly set, using default values.");
-                limit = 100;
-                offset = 0;
-            }
-
-            for (int i = 0; (dspaceItems.hasNext()) && (i < (limit + offset)); i++)
-            {
-                org.dspace.content.Item dspaceItem = dspaceItems.next();
-                if (i >= offset)
-                {
-                    if (ItemService.isItemListedForUser(context, dspaceItem))
-                    {
-                        items.add(new Item(dspaceItem, expand, context));
-                        writeStats(dspaceItem, UsageEvent.Action.VIEW, user_ip, user_agent, xforwarderfor,
-                                headers, request, context);
-                    }
-                }
-            }
-            context.complete();
-        }
-        catch (SQLException e)
-        {
-            processException("Something went wrong while reading items from database. Message: " + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Something went wrong while reading items, ContextException. Message: " + e.getMessage(), context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        log.trace("Items were successfully read.");
-        return items.toArray(new Item[0]);
-    }
-
-    /**
-     * Returns item metadata in list.
-     * 
-     * @param itemId
-     *            Id of item in DSpace.
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return Return list of metadata fields if was everything ok. Otherwise it
-     *         throw WebApplication exception with response code NOT_FOUND(404)
-     *         or UNAUTHORIZED(401).
-     * @throws WebApplicationException
-     *             It can be thrown by two exceptions: SQLException if was
-     *             problem wtih reading item from database and ContextException,
-     *             if was problem with creating context of DSpace. And can be
-     *             thrown by NOT_FOUND and UNAUTHORIZED too.
-     */
-    @GET
-    @Path("/{item_id}/metadata")
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public MetadataEntry[] getItemMetadata(@PathParam("item_id") Integer itemId, @QueryParam("userIP") String user_ip,
-            @QueryParam("userAgent") String user_agent, @QueryParam("xforwarderfor") String xforwarderfor,
-            @Context HttpHeaders headers, @Context HttpServletRequest request) throws WebApplicationException
-    {
-
-        log.info("Reading item(id=" + itemId + ") metadata.");
-        org.dspace.core.Context context = null;
-        List<MetadataEntry> metadata = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Item dspaceItem = findItem(context, itemId, org.dspace.core.Constants.READ);
-
-            writeStats(dspaceItem, UsageEvent.Action.VIEW, user_ip, user_agent, xforwarderfor, headers, request, context);
-
-            metadata = new org.dspace.rest.common.Item(dspaceItem, "metadata", context).getMetadata();
-            context.complete();
-        }
-        catch (SQLException e)
-        {
-            processException("Could not read item(id=" + itemId + "), SQLException. Message: " + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not read item(id=" + itemId + "), ContextException. Message: " + e.getMessage(), context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        log.trace("Item(id=" + itemId + ") metadata were successfully read.");
-        return metadata.toArray(new MetadataEntry[0]);
-    }
-
-    /**
-     * Return array of bitstreams in item. It can be pagged.
-     * 
-     * @param itemId
-     *            Id of item in DSpace.
-     * @param limit
-     *            How many items will be in array.
-     * @param offset
-     *            On which index will start array.
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return Return pagged array of bitstreams in item.
-     * @throws WebApplicationException
-     *             It can be throw by NOT_FOUND, UNAUTHORIZED, SQLException if
-     *             was problem with reading from database and ContextException
-     *             if was problem with creating context of DSpace.
-     */
-    @GET
-    @Path("/{item_id}/bitstreams")
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Bitstream[] getItemBitstreams(@PathParam("item_id") Integer itemId,
-            @QueryParam("limit") @DefaultValue("20") Integer limit, @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Reading item(id=" + itemId + ") bitstreams.(offset=" + offset + ",limit=" + limit + ")");
-        org.dspace.core.Context context = null;
-        List<Bitstream> bitstreams = null;
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Item dspaceItem = findItem(context, itemId, org.dspace.core.Constants.READ);
-
-            writeStats(dspaceItem, UsageEvent.Action.VIEW, user_ip, user_agent, xforwarderfor, headers, request, context);
-
-            List<Bitstream> itemBitstreams = new Item(dspaceItem, "bitstreams", context).getBitstreams();
-
-            if ((offset + limit) > (itemBitstreams.size() - offset))
-            {
-                bitstreams = itemBitstreams.subList(offset, itemBitstreams.size());
-            }
-            else
-            {
-                bitstreams = itemBitstreams.subList(offset, offset + limit);
-            }
-            context.complete();
-        }
-        catch (SQLException e)
-        {
-            processException("Could not read item(id=" + itemId + ") bitstreams, SQLExcpetion. Message: " + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not read item(id=" + itemId + ") bitstreams, ContextException. Message: " + e.getMessage(),
-                    context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        log.trace("Item(id=" + itemId + ") bitstreams were successfully read.");
-        return bitstreams.toArray(new Bitstream[0]);
-    }
-
-    /**
-     * Adding metadata fields to item. If metadata key is in item, it will be
-     * added, NOT REPLACED!
-     * 
-     * @param itemId
-     *            Id of item in DSpace.
-     * @param metadata
-     *            List of metadata fields, which will be added into item.
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return It returns status code OK(200) if all was ok. UNAUTHORIZED(401)
-     *         if user is not allowed to write to item. NOT_FOUND(404) if id of
-     *         item is incorrect.
-     * @throws WebApplicationException
-     *             It is throw by these exceptions: SQLException, if was problem
-     *             with reading from database or writing to database.
-     *             AuthorizeException, if was problem with authorization to item
-     *             fields. ContextException, if was problem with creating
-     *             context of DSpace.
-     */
-    @POST
-    @Path("/{item_id}/metadata")
-    @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Response addItemMetadata(@PathParam("item_id") Integer itemId, List<org.dspace.rest.common.MetadataEntry> metadata,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Adding metadata to item(id=" + itemId + ").");
-        org.dspace.core.Context context = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Item dspaceItem = findItem(context, itemId, org.dspace.core.Constants.WRITE);
-
-            writeStats(dspaceItem, UsageEvent.Action.UPDATE, user_ip, user_agent, xforwarderfor, headers, request, context);
-
-            for (MetadataEntry entry : metadata)
-            {
-                // TODO Test with Java split
-                String data[] = mySplit(entry.getKey()); // Done by my split, because of java split was not function.
-                if ((data.length >= 2) && (data.length <= 3))
-                {
-                    dspaceItem.addMetadata(data[0], data[1], data[2], entry.getLanguage(), entry.getValue());
-                }
-            }
-            dspaceItem.update();
-            context.complete();
-
-        }
-        catch (SQLException e)
-        {
-            processException("Could not write metadata to item(id=" + itemId + "), SQLException. Message: " + e, context);
-        }
-        catch (AuthorizeException e)
-        {
-            processException("Could not write metadata to item(id=" + itemId + "), AuthorizeException. Message: " + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not write metadata to item(id=" + itemId + "), ContextException. Message: " + e.getMessage(),
-                    context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        log.info("Metadata to item(id=" + itemId + ") were successfully added.");
-        return Response.status(Status.OK).build();
-    }
-
-    /**
-     * Create bitstream in item.
-     * 
-     * @param itemId
-     *            Id of item in DSpace.
-     * @param inputStream
-     *            Data of bitstream in inputStream.
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return Returns bitstream with status code OK(200). If id of item is
-     *         invalid , it returns status code NOT_FOUND(404). If user is not
-     *         allowed to write to item, UNAUTHORIZED(401).
-     * @throws WebApplicationException
-     *             It is thrown by these exceptions: SQLException, when was
-     *             problem with reading/writing from/to database.
-     *             AuthorizeException, when was problem with authorization to
-     *             item and add bitstream to item. IOException, when was problem
-     *             with creating file or reading from inpustream.
-     *             ContextException. When was problem with creating context of
-     *             DSpace.
-     */
-    // TODO Add option to add bitsream by URI.(for very big files)
-    @POST
-    @Path("/{item_id}/bitstreams")
-    public Bitstream addItemBitstream(@PathParam("item_id") Integer itemId, InputStream inputStream,
-            @QueryParam("name") String name, @QueryParam("description") String description,
-            @QueryParam("groupId") Integer groupId, @QueryParam("year") Integer year, @QueryParam("month") Integer month,
-            @QueryParam("day") Integer day, @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Adding bitstream to item(id=" + itemId + ").");
-        org.dspace.core.Context context = null;
-        Bitstream bitstream = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Item dspaceItem = findItem(context, itemId, org.dspace.core.Constants.WRITE);
-
-            writeStats(dspaceItem, UsageEvent.Action.UPDATE, user_ip, user_agent, xforwarderfor, headers, request, context);
-
-            // Is better to add bitstream to ORIGINAL bundle or to item own?
-            log.trace("Creating bitstream in item.");
-            org.dspace.content.Bundle bundle = null;
-            org.dspace.content.Bitstream dspaceBitstream = null;
-            Bundle[] bundles = dspaceItem.getBundles("ORIGINAL");
-			if(bundles != null && bundles.length != 0)
-			{
-				bundle = bundles[0]; // There should be only one bundle ORIGINAL.
-			}
-            if (bundle == null)
-            {
-                log.trace("Creating bundle in item.");
-                dspaceBitstream = dspaceItem.createSingleBitstream(inputStream);
-            }
-            else
-            {
-                log.trace("Getting bundle from item.");
-                dspaceBitstream = bundle.createBitstream(inputStream);
-            }
-
-            dspaceBitstream.setSource("DSpace Rest api");
-
-            // Set bitstream name and description
-            if (name != null)
-            {
-                if (BitstreamResource.getMimeType(name) == null)
-                {
-                    dspaceBitstream.setFormat(BitstreamFormat.findUnknown(context));
-                }
-                else
-                {
-                    dspaceBitstream.setFormat(BitstreamFormat.findByMIMEType(context, BitstreamResource.getMimeType(name)));
-                }
-                dspaceBitstream.setName(name);
-            }
-            if (description != null)
-            {
-                dspaceBitstream.setDescription(description);
-            }
-
-            dspaceBitstream.update();
-
-            // Create policy for bitstream
-            if (groupId != null)
-            {
-                bundles = dspaceBitstream.getBundles();
-                for (Bundle dspaceBundle : bundles)
-                {
-                    List<org.dspace.authorize.ResourcePolicy> bitstreamsPolicies = dspaceBundle.getBitstreamPolicies();
-
-                    // Remove default bitstream policies
-                    List<org.dspace.authorize.ResourcePolicy> policiesToRemove = new ArrayList<org.dspace.authorize.ResourcePolicy>();
-                    for (org.dspace.authorize.ResourcePolicy policy : bitstreamsPolicies)
-                    {
-                        if (policy.getResourceID() == dspaceBitstream.getID())
-                        {
-                            policiesToRemove.add(policy);
-                        }
-                    }
-                    for (org.dspace.authorize.ResourcePolicy policy : policiesToRemove)
-                    {
-                        bitstreamsPolicies.remove(policy);
-                    }
-
-                    org.dspace.authorize.ResourcePolicy dspacePolicy = org.dspace.authorize.ResourcePolicy.create(context);
-                    dspacePolicy.setAction(org.dspace.core.Constants.READ);
-                    dspacePolicy.setGroup(Group.find(context, groupId));
-                    dspacePolicy.setResourceID(dspaceBitstream.getID());
-                    dspacePolicy.setResource(dspaceBitstream);
-                    dspacePolicy.setResourceType(org.dspace.core.Constants.BITSTREAM);
-                    if ((year != null) || (month != null) || (day != null))
-                    {
-                        Date date = new Date();
-                        if (year != null)
-                        {
-                            date.setYear(year - 1900);
-                        }
-                        if (month != null)
-                        {
-                            date.setMonth(month - 1);
-                        }
-                        if (day != null)
-                        {
-                            date.setDate(day);
-                        }
-                        date.setHours(0);
-                        date.setMinutes(0);
-                        date.setSeconds(0);
-                        dspacePolicy.setStartDate(date);
-                    }
-                    dspacePolicy.update();
-                    bitstreamsPolicies.add(dspacePolicy);
-
-                    dspaceBundle.replaceAllBitstreamPolicies(bitstreamsPolicies);
-                    dspaceBundle.update();
-                }
-            }
-
-            dspaceBitstream = org.dspace.content.Bitstream.find(context, dspaceBitstream.getID());
-            bitstream = new Bitstream(dspaceBitstream, "");
-
-            context.complete();
-
-        }
-        catch (SQLException e)
-        {
-            processException("Could not create bitstream in item(id=" + itemId + "), SQLException. Message: " + e, context);
-        }
-        catch (AuthorizeException e)
-        {
-            processException("Could not create bitstream in item(id=" + itemId + "), AuthorizeException. Message: " + e, context);
-        }
-        catch (IOException e)
-        {
-            processException("Could not create bitstream in item(id=" + itemId + "), IOException Message: " + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException(
-                    "Could not create bitstream in item(id=" + itemId + "), ContextException Message: " + e.getMessage(), context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        log.info("Bitstream(id=" + bitstream.getId() + ") was successfully added into item(id=" + itemId + ").");
-        return bitstream;
-    }
-
-    /**
-     * Replace all metadata in item with new passed metadata.
-     * 
-     * @param itemId
-     *            Id of item in DSpace.
-     * @param metadata
-     *            List of metadata fields, which will replace old metadata in
-     *            item.
-     * @param headers
-     *            If you want to access to item under logged user into context.
-     *            In headers must be set header "rest-dspace-token" with passed
-     *            token from login method.
-     * @return It returns status code: OK(200). NOT_FOUND(404) if item was not
-     *         found, UNAUTHORIZED(401) if user is not allowed to write to item.
-     * @throws WebApplicationException
-     *             It is thrown by: SQLException, when was problem with database
-     *             reading or writting, AuthorizeException when was problem with
-     *             authorization to item and metadata fields. And
-     *             ContextException, when was problem with creating context of
-     *             DSpace.
-     */
-    @PUT
-    @Path("/{item_id}/metadata")
-    @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Response updateItemMetadata(@PathParam("item_id") Integer itemId, MetadataEntry[] metadata,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Updating metadata in item(id=" + itemId + ").");
-        org.dspace.core.Context context = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-            org.dspace.content.Item dspaceItem = findItem(context, itemId, org.dspace.core.Constants.WRITE);
-
-            writeStats(dspaceItem, UsageEvent.Action.UPDATE, user_ip, user_agent, xforwarderfor, headers, request, context);
-
-            log.trace("Deleting original metadata from item.");
-            for (MetadataEntry entry : metadata)
-            {
-                String data[] = mySplit(entry.getKey());
-                if ((data.length >= 2) && (data.length <= 3))
-                {
-                    dspaceItem.clearMetadata(data[0], data[1], data[2], org.dspace.content.Item.ANY);
-                }
+            if(AuthorizeManager.authorizeActionBoolean(context, item, org.dspace.core.Constants.READ)) {
+            	if(writeStatistics){
+    				writeStats(context, item_id, user_ip, user_agent, xforwarderfor, headers, request);
+    			}
+                return new org.dspace.rest.common.Item(item, expand, context);
+            } else {
+                throw new WebApplicationException(Response.Status.UNAUTHORIZED);
             }
 
             log.trace("Adding new metadata to item.");
@@ -720,6 +170,14 @@ public class ItemsResource extends Resource
         {
             processException("Could not delete item(id=" + itemId + "), AuthorizeException. Message: " + e, context);
             throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
+        } finally {
+            if(context != null) {
+                try {
+                    context.complete();
+                } catch (SQLException e) {
+                    log.error(e.getMessage() + " occurred while trying to close");
+                }
+            }
         }
         catch (IOException e)
         {
@@ -1041,6 +499,39 @@ public class ItemsResource extends Resource
 
         return items.toArray(new Item[0]);
     }
+    
+    
+    private void writeStats(org.dspace.core.Context context, Integer item_id, String user_ip, String user_agent,
+			String xforwarderfor, HttpHeaders headers,
+			HttpServletRequest request) {
+		
+    	try{
+    		DSpaceObject item = DSpaceObject.find(context, Constants.ITEM, item_id);
+    		
+    		if(user_ip==null || user_ip.length()==0){
+    			new DSpace().getEventService().fireEvent(
+	                     new UsageEvent(
+	                                     UsageEvent.Action.VIEW,
+	                                     request,
+	                                     context,
+	                                     item));
+    		} else{
+	    		new DSpace().getEventService().fireEvent(
+	                     new UsageEvent(
+	                                     UsageEvent.Action.VIEW,
+	                                     user_ip,
+	                                     user_agent,
+	                                     xforwarderfor,
+	                                     context,
+	                                     item));
+    		}
+    		log.debug("fired event");
+    		
+		} catch(SQLException ex){
+			log.error("SQL exception can't write usageEvent \n" + ex);
+		}
+    		
+	}
 
     /**
      * Find item from DSpace database. It is encapsulation of method

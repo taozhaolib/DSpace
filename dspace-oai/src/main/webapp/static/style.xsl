@@ -31,105 +31,582 @@
                 <link rel="stylesheet" href="static/css/style.css" type="text/css" />
 			</head>
 			<body>
-                <div class="container">
-                    <div class="navbar navbar-default" role="navigation">
-                        <div class="navbar-header">
-                            <a class="navbar-brand" href="#">DSpace OAI-PMH Data Provider</a>
-                        </div>
-                        <div class="navbar-collapse collapse">
-                            <ul class="nav navbar-nav navbar-right">
-                                <li>
-                                    <a title="Institutional information">
-                                        <xsl:if test="/oai:OAI-PMH/oai:request/@verb = 'Identify'">
-                                            <xsl:attribute name="class">active</xsl:attribute>
-                                        </xsl:if>
-                                        <xsl:attribute name="href">
-                                            <xsl:value-of
-                                                    select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=Identify')"></xsl:value-of>
-                                        </xsl:attribute>
-                                        Identify
-                                    </a>
-                                </li>
-                                <li>
-                                    <a title="Listing available sets">
-                                        <xsl:if test="/oai:OAI-PMH/oai:request/@verb = 'ListSets'">
-                                            <xsl:attribute name="class">active</xsl:attribute>
-                                        </xsl:if>
-                                        <xsl:attribute name="href">
-                                            <xsl:value-of
-                                                    select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListSets')"></xsl:value-of>
-                                        </xsl:attribute>
-                                        Sets
-                                    </a>
-                                </li>
-                                <li>
-                                    <a title="Listing records (with metadata)">
-                                        <xsl:if test="/oai:OAI-PMH/oai:request/@verb = 'ListRecords'">
-                                            <xsl:attribute name="class">active</xsl:attribute>
-                                        </xsl:if>
-                                        <xsl:attribute name="href">
-                                            <xsl:value-of
-                                                    select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListRecords&amp;metadataPrefix=oai_dc')"></xsl:value-of>
-                                        </xsl:attribute>
-                                        Records
-                                    </a>
-                                </li>
-                                <li>
-                                    <a title="Listing identifiers only">
-                                        <xsl:if test="/oai:OAI-PMH/oai:request/@verb = 'ListIdentifiers'">
-                                            <xsl:attribute name="class">active</xsl:attribute>
-                                        </xsl:if>
-                                        <xsl:attribute name="href">
-                                            <xsl:value-of
-                                                    select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListIdentifiers&amp;metadataPrefix=oai_dc')"></xsl:value-of>
-                                        </xsl:attribute>
-                                        Identifiers
-                                    </a>
-                                </li>
-                                <li>
-                                    <a title="Metadata Formats available">
-                                        <xsl:if
-                                                test="/oai:OAI-PMH/oai:request/@verb = 'ListMetadataFormats'">
-                                            <xsl:attribute name="class">active</xsl:attribute>
-                                        </xsl:if>
-                                        <xsl:attribute name="href">
-                                            <xsl:value-of
-                                                    select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListMetadataFormats')"></xsl:value-of>
-                                        </xsl:attribute>
-                                        Metadata Formats
-                                    </a>
-                                </li>
-                            </ul>
-                        </div><!--/.nav-collapse -->
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-offset-1 col-lg-10">
-                            <div class="row">
-                                <h5>Response Date <small><xsl:value-of select="translate(oai:OAI-PMH/oai:responseDate/text(), 'TZ', ' ')" /></small></h5>
-                            </div>
-                            <div class="row">
-                                <xsl:apply-templates select="oai:OAI-PMH/oai:error" />
-                                <xsl:apply-templates select="oai:OAI-PMH/oai:Identify" />
-                                <xsl:apply-templates select="oai:OAI-PMH/oai:ListSets" />
-                                <xsl:apply-templates select="oai:OAI-PMH/oai:ListRecords" />
-                                <xsl:apply-templates select="oai:OAI-PMH/oai:ListIdentifiers" />
-                                <xsl:apply-templates select="oai:OAI-PMH/oai:ListMetadataFormats" />
-                                <xsl:apply-templates select="oai:OAI-PMH/oai:GetRecord" />
-                            </div>
-                        </div>
-                    </div>
+				<div class="wrapper">
+					<div class="header">
+						<div>
+							<h1>DSpace OAI-PMH Data Provider</h1>
+							<div class="contexts">
+								<ul>
+									<li>
+										<a title="Institutional information">
+											<xsl:if test="/oai:OAI-PMH/oai:request/@verb = 'Identify'">
+												<xsl:attribute name="class">active</xsl:attribute>
+											</xsl:if>
+											<xsl:attribute name="href">
+												<xsl:value-of
+												select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=Identify')"></xsl:value-of>
+											</xsl:attribute>
+											Identify
+										</a>
+									</li>
+									<li>
+										<a title="Listing available sets">
+											<xsl:if test="/oai:OAI-PMH/oai:request/@verb = 'ListSets'">
+												<xsl:attribute name="class">active</xsl:attribute>
+											</xsl:if>
+											<xsl:attribute name="href">
+												<xsl:value-of
+												select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListSets')"></xsl:value-of>
+											</xsl:attribute>
+											Sets
+										</a>
+									</li>
+									<li>
+										<a title="Listing records (with metadata)">
+											<xsl:if test="/oai:OAI-PMH/oai:request/@verb = 'ListRecords'">
+												<xsl:attribute name="class">active</xsl:attribute>
+											</xsl:if>
+											<xsl:attribute name="href">
+												<xsl:value-of
+												select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListRecords&amp;metadataPrefix=oai_dc')"></xsl:value-of>
+											</xsl:attribute>
+											Records
+										</a>
+									</li>
+									<li>
+										<a title="Listing identifiers only">
+											<xsl:if test="/oai:OAI-PMH/oai:request/@verb = 'ListIdentifiers'">
+												<xsl:attribute name="class">active</xsl:attribute>
+											</xsl:if>
+											<xsl:attribute name="href">
+												<xsl:value-of
+												select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListIdentifiers&amp;metadataPrefix=oai_dc')"></xsl:value-of>
+											</xsl:attribute>
+											Identifiers
+										</a>
+									</li>
+									<li>
+										<a title="Metadata Formats available">
+											<xsl:if
+												test="/oai:OAI-PMH/oai:request/@verb = 'ListMetadataFormats'">
+												<xsl:attribute name="class">active</xsl:attribute>
+											</xsl:if>
+											<xsl:attribute name="href">
+												<xsl:value-of
+												select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListMetadataFormats')"></xsl:value-of>
+											</xsl:attribute>
+											Metadata Formats
+										</a>
+									</li>
+								</ul>
 
+								<div class="date">
+									<label>Response Date</label>
+									<span>
+										<xsl:value-of
+											select="translate(oai:OAI-PMH/oai:responseDate/text(), 'TZ', ' ')" />
+									</span>
+								</div>
+								<div class="clear"></div>
+							</div>
+						</div>
+					</div>
+					<div class="content">
+						<xsl:if test="oai:OAI-PMH/oai:Identify">
+							<table class="identify">
+								<tr class="info">
+									<td class="name">Repository Name</td>
+									<td class="value">
+										<xsl:value-of
+											select="oai:OAI-PMH/oai:Identify/oai:repositoryName/text()" />
+									</td>
+									<td class="clear"></td>
+								</tr>
+								<tr class="info">
+									<td class="name">E-Mail Contact</td>
+									<td class="value">
+										<a>
+											<xsl:attribute name="href">
+										<xsl:value-of
+												select="concat('mailto:', oai:OAI-PMH/oai:Identify/oai:adminEmail/text())" />
+									</xsl:attribute>
+											<xsl:value-of
+												select="oai:OAI-PMH/oai:Identify/oai:adminEmail/text()" />
+										</a>
+									</td>
+									<td class="clear"></td>
+								</tr>
+                                                                <tr class="info">
+                                                                        <td class="name">Repository identifier</td>
+                                                                        <td class="value">
+                                                                                <xsl:value-of select="oai:OAI-PMH/oai:Identify/oai:description//*[local-name() = 'repositoryIdentifier']/text()" />
+                                                                        </td>
+                                                                        <td class="clear"></td>
+                                                                </tr>
+                                                                <tr class="info">
+                                                                        <td class="name">Sample identifier</td>
+                                                                        <td class="value">
+                                                                                <xsl:value-of select="oai:OAI-PMH/oai:Identify/oai:description//*[local-name() = 'sampleIdentifier']/text()" />
+                                                                        </td>
+                                                                        <td class="clear"></td>
+                                                                </tr>
+								<tr>
+									<td class="separator"></td>
+								</tr>
+								<tr class="info">
+									<td class="name">Protocol Version</td>
+									<td class="value">
+										<xsl:value-of
+											select="oai:OAI-PMH/oai:Identify/oai:protocolVersion/text()" />
+									</td>
+									<td class="clear"></td>
+								</tr>
+								<tr class="info">
+									<td class="name">Earliest Registered Date</td>
+									<td class="value">
+										<xsl:value-of
+											select="translate(oai:OAI-PMH/oai:Identify/oai:earliestDatestamp/text(), 'TZ' ,' ')" />
+									</td>
+									<td class="clear"></td>
+								</tr>
+								<tr class="info">
+									<td class="name">Date Granularity</td>
+									<td class="value">
+										<xsl:value-of
+											select="translate(oai:OAI-PMH/oai:Identify/oai:granularity/text(), 'TZ', ' ')" />
+									</td>
+									<td class="clear"></td>
+								</tr>
+								<tr class="info">
+									<td class="name">Deletion Mode</td>
+									<td class="value">
+										<xsl:value-of
+											select="oai:OAI-PMH/oai:Identify/oai:deletedRecord/text()" />
+									</td>
+									<td class="clear"></td>
+								</tr>
+							</table>
+						</xsl:if>
+						<xsl:if test="oai:OAI-PMH/oai:ListSets">
+							<div class="result-count">
+								<label>Results fetched:</label>
+								<span>
+									<xsl:call-template name="result-count">
+										<xsl:with-param name="path"
+											select="oai:OAI-PMH/oai:ListSets/oai:set" />
+									</xsl:call-template>
+								</span>
+							</div>
+							<div class="sets">
+								<xsl:for-each select="oai:OAI-PMH/oai:ListSets/oai:set">
+									<div class="set">
+										<xsl:if test="position() mod 2 = 1">
+											<xsl:attribute name="class">setalternate</xsl:attribute>
+										</xsl:if>
+										<div class="name">
+											<xsl:choose>
+												<xsl:when test="string-length(oai:setName/text()) &gt; 83">
+													<xsl:value-of select="substring(oai:setName/text(),0, 80 )" />
+													...
+												</xsl:when>
+												<xsl:otherwise>
+													<xsl:value-of select="oai:setName/text()" />
+												</xsl:otherwise>
+											</xsl:choose>
+											<span class="tiny">
+												(
+												<xsl:value-of select="oai:setSpec/text()" />
+												)
+											</span>
+										</div>
+										<div class="spec">
+											<a>
+												<xsl:attribute name="href">
+													<xsl:value-of
+													select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListRecords&amp;metadataPrefix=oai_dc&amp;set=', oai:setSpec/text())" />
+												</xsl:attribute>
+												Records
+											</a>
+											<a>
+												<xsl:attribute name="href">
+													<xsl:value-of
+													select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListIdentifiers&amp;metadataPrefix=oai_dc&amp;set=', oai:setSpec/text())" />
+												</xsl:attribute>
+												Identifiers
+											</a>
+										</div>
+										<div class="clear"></div>
+									</div>
+									<div class="clear"></div>
+								</xsl:for-each>
 
-                    <div class="row-fluid text-center">
-                        <div class="vertical-space"></div>
-                        <p><small>Design by Lyncode</small></p>
-                        <p>
-                            <a href="http://www.lyncode.com">
-                                <img style="height: 20px;" src="static/img/lyncode.png" alt="Lyncode" />
-                            </a>
-                        </p>
-                    </div>
-                </div>
+								<xsl:if
+									test="oai:OAI-PMH/oai:ListSets/oai:resumptionToken/text() != ''">
+									<a class="next">
+										<xsl:attribute name="href">
+											<xsl:value-of
+											select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListSets&amp;resumptionToken=', oai:OAI-PMH/oai:ListSets/oai:resumptionToken/text())"></xsl:value-of>
+										</xsl:attribute>
+										Show More
+									</a>
+								</xsl:if>
+							</div>
+							<script type="text/javascript">
+								$(document).ready(function (){
+								$('.sets div').mouseover(function() {
+								$(this).find('a').css("visibility", "visible");
+								});
+								$('.sets
+								div').mouseout(function () {
+								$(this).find('a').css("visibility", "hidden");
+								});
+								$('.sets div').find('a').css("visibility",
+								"hidden");
+								});
+							</script>
+						</xsl:if>
+						<xsl:if test="oai:OAI-PMH/oai:error">
+							<div class="error">
+								<div>
+									<xsl:value-of select="oai:OAI-PMH/oai:error/text()"></xsl:value-of>
+								</div>
+							</div>
+						</xsl:if>
+						<xsl:if test="oai:OAI-PMH/oai:ListMetadataFormats">
+							<div class="result-count">
+								<label>Results fetched</label>
+								<span>
+									<xsl:value-of
+										select="count(oai:OAI-PMH/oai:ListMetadataFormats/oai:metadataFormat)" />
+								</span>
+							</div>
+							<div class="formats">
+								<xsl:for-each
+									select="oai:OAI-PMH/oai:ListMetadataFormats/oai:metadataFormat">
+									<a class="format">
+										<xsl:attribute name="href">
+											<xsl:value-of
+											select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListRecords&amp;metadataPrefix=', oai:metadataPrefix/text())" />
+										</xsl:attribute>
+										<div class="prefix">
+											<xsl:value-of select="oai:metadataPrefix/text()"></xsl:value-of>
+										</div>
+										<div class="namespace">
+											Namespace:
+											<xsl:value-of select="oai:metadataNamespace/text()"></xsl:value-of>
+										</div>
+										<div class="schema">
+											Schema:
+											<xsl:value-of select="oai:schema/text()"></xsl:value-of>
+										</div>
+										<div class="clear"></div>
+									</a>
+									<div class="clear"></div>
+								</xsl:for-each>
+							</div>
+						</xsl:if>
+						<xsl:if test="oai:OAI-PMH/oai:ListIdentifiers">
+							<div class="identifiers">
+								<div class="result-count">
+									<label>Results fetched:</label>
+									<span>
+										<xsl:call-template name="result-count">
+											<xsl:with-param name="path"
+												select="oai:OAI-PMH/oai:ListIdentifiers/oai:header" />
+										</xsl:call-template>
+									</span>
+								</div>
+								<xsl:for-each select="oai:OAI-PMH/oai:ListIdentifiers/oai:header">
+									<div class="identifier">
+										<xsl:if test="position() mod 2 = 0">
+											<xsl:attribute name="class">identifieralternate</xsl:attribute>
+										</xsl:if>
+										<div class="id">
+											<label>Identifier</label>
+											<span>
+												<xsl:value-of select="oai:identifier" />
+											</span>
+										</div>
+										<div class="datestamp">
+											<label>Last Modified</label>
+											<span>
+												<xsl:value-of select="translate(oai:datestamp, 'TZ', ' ')" />
+											</span>
+										</div>
+										<div class="setspecs">
+											<span>Sets</span>
+											<div class="list">
+												<xsl:for-each select="oai:setSpec">
+													<div class="setspec">
+														<xsl:if test="position() mod 2 = 1">
+															<xsl:attribute name="class">
+													setspecalternate
+												</xsl:attribute>
+														</xsl:if>
+														<label>
+															<xsl:value-of select="text()" />
+														</label>
+														<div class="innerspec">
+															<a>
+																<xsl:attribute name="href">
+														<xsl:value-of
+																	select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListRecords&amp;metadataPrefix=oai_dc&amp;set=', text())" />
+													</xsl:attribute>
+																Records
+															</a>
+															<a>
+																<xsl:attribute name="href">
+														<xsl:value-of
+																	select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListIdentifiers&amp;metadataPrefix=oai_dc&amp;set=', text())" />
+													</xsl:attribute>
+																Identifiers
+															</a>
+															<div class="clear"></div>
+														</div>
+														<div class="clear"></div>
+													</div>
+												</xsl:for-each>
+											</div>
+											<a class="getrecord">
+												<xsl:attribute name="href">
+											<xsl:value-of
+													select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=GetRecord&amp;metadataPrefix=oai_dc&amp;identifier=', oai:identifier/text())" />
+										</xsl:attribute>
+												Get Record
+											</a>
+										</div>
+									</div>
+									<div class="clear"></div>
+								</xsl:for-each>
+
+								<xsl:if
+									test="oai:OAI-PMH/oai:ListIdentifiers/oai:resumptionToken/text() != ''">
+									<a class="next">
+										<xsl:attribute name="href">
+										<xsl:value-of
+											select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListIdentifiers&amp;resumptionToken=', oai:OAI-PMH/oai:ListIdentifiers/oai:resumptionToken/text())"></xsl:value-of>
+									</xsl:attribute>
+										Show More
+									</a>
+								</xsl:if>
+							</div>
+							<script type="text/javascript">
+								$(document).ready(function(){
+								$('div.identifiers div div.setspecs span').click(function(){
+								$(this).parent().children('.list').toggle();
+								});
+								$('div.identifiers div div.setspecs div.list').hide();
+								});
+								$(document).ready(function() {
+								$('div.identifiers div.list div').mouseover(function(){
+								$(this).find('a').css('visibility','visible');
+								});
+								$('div.identifiers div.list div').mouseout(function(){
+								$(this).find('a').css('visibility','hidden');
+								});
+								$('div.identifiers div.list div a').css('visibility','hidden');
+								});
+							</script>
+						</xsl:if>
+						<xsl:if test="oai:OAI-PMH/oai:GetRecord">
+							<div class="getRecord">
+								<div class="getcontent">
+									<div class="in">
+										<label>Identifier</label>
+										<span>
+											<xsl:value-of
+												select="oai:OAI-PMH/oai:GetRecord/oai:record/oai:header/oai:identifier/text()"></xsl:value-of>
+										</span>
+									</div>
+									<div class="in">
+										<label>Last Modified</label>
+										<span>
+											<xsl:value-of
+												select="translate(oai:OAI-PMH/oai:GetRecord/oai:record/oai:header/oai:datestamp/text(), 'TZ', ' ')"></xsl:value-of>
+										</span>
+									</div>
+									<div class="clear"></div>
+									<div class="recSets">
+										<label class="lab">Sets</label>
+										<div class="list">
+											<xsl:for-each
+												select="oai:OAI-PMH/oai:GetRecord/oai:record/oai:header/oai:setSpec">
+
+												<div class="recSet">
+													<xsl:if test="position() mod 2 = 1">
+														<xsl:attribute name="class">recSetAlternate</xsl:attribute>
+													</xsl:if>
+													<label class="getrecordsets">
+														<xsl:value-of select="text()" />
+													</label>
+													<div class="recSetInner">
+														<a>
+															<xsl:attribute name="href">
+															<xsl:value-of
+																select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListRecords&amp;metadataPrefix=oai_dc&amp;set=', text())" />
+														</xsl:attribute>
+															Records
+														</a>
+														<a>
+															<xsl:attribute name="href">
+															<xsl:value-of
+																select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListIdentifiers&amp;metadataPrefix=oai_dc&amp;set=', text())" />
+														</xsl:attribute>
+															Identifiers
+														</a>
+														<div class="clear"></div>
+													</div>
+													<div class="clear"></div>
+												</div>
+												<div class="clear"></div>
+											</xsl:for-each>
+											<div class="clear"></div>
+										</div>
+									</div>
+									<div class="metadata">
+										<div class="metadataTitle hiddable">Metadata</div>
+										<xsl:apply-templates
+											select="oai:OAI-PMH/oai:GetRecord/oai:record/oai:metadata/*" />
+									</div>
+								</div>
+							</div>
+							<script type="text/javascript">
+								$(document).ready(function(){
+								$('div.recSetInner a').css('visibility','hidden');
+								$('div.recSetInner').parent().mouseover(function(){
+								$(this).find('a').css('visibility', 'visible');
+								});
+								$('div.recSetInner').parent().mouseout(function(){
+								$(this).find('a').css('visibility', 'hidden');
+								});
+								});
+							</script>
+						</xsl:if>
+						<xsl:if test="oai:OAI-PMH/oai:ListRecords">
+							<div class="result-count">
+								<label>Results fetched:</label>
+								<span>
+									<xsl:call-template name="result-count">
+										<xsl:with-param name="path"
+											select="oai:OAI-PMH/oai:ListRecords/oai:record" />
+									</xsl:call-template>
+									<!-- <xsl:choose> <xsl:when test="oai:OAI-PMH/oai:ListRecords/oai:resumptionToken/@cursor"> 
+										<xsl:variable name="cursor" select="oai:OAI-PMH/oai:ListRecords/oai:resumptionToken/@cursor"/> 
+										<xsl:variable name="per-page" select="count(oai:OAI-PMH/oai:ListRecords/oai:record)"/> 
+										<xsl:value-of select="$cursor * $per-page"/>-<xsl:value-of select="($cursor+1) 
+										* $per-page"/> </xsl:when> <xsl:otherwise> <xsl:value-of select="count(oai:OAI-PMH/oai:ListRecords/oai:record)"/> 
+										</xsl:otherwise> </xsl:choose> <xsl:if test="oai:OAI-PMH/oai:ListRecords/oai:resumptionToken/@completeListSize"> 
+										of <xsl:value-of select="oai:OAI-PMH/oai:ListRecords/oai:resumptionToken/@completeListSize"/> 
+										</xsl:if> -->
+								</span>
+							</div>
+							<xsl:for-each select="oai:OAI-PMH/oai:ListRecords/oai:record">
+								<div class="getRecord multiple">
+									<xsl:if test="position() mod 2 = 0">
+										<xsl:attribute name="class">
+									getRecordAlternate multiple
+								</xsl:attribute>
+									</xsl:if>
+									<div class="getcontent">
+										<div class="in">
+											<label>Identifier</label>
+											<span>
+												<xsl:value-of select="oai:header/oai:identifier/text()"></xsl:value-of>
+											</span>
+										</div>
+										<div class="in">
+											<label>Last Modified</label>
+											<span>
+												<xsl:value-of
+													select="translate(oai:header/oai:datestamp/text(), 'TZ', ' ')"></xsl:value-of>
+											</span>
+										</div>
+										<div class="clear"></div>
+										<div class="recSets">
+											<label class="lab hiddable">Sets</label>
+											<div class="list">
+												<xsl:for-each select="oai:header/oai:setSpec">
+													<div class="recSet">
+														<xsl:if test="position() mod 2 = 1">
+															<xsl:attribute name="class">recSetAlternate</xsl:attribute>
+														</xsl:if>
+														<label class="getrecordsets">
+															<xsl:value-of select="text()" />
+														</label>
+														<div class="recSetInner">
+															<a>
+																<xsl:attribute name="href">
+															<xsl:value-of
+																	select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListRecords&amp;metadataPrefix=oai_dc&amp;set=', text())" />
+														</xsl:attribute>
+																Records
+															</a>
+															<a>
+																<xsl:attribute name="href">
+															<xsl:value-of
+																	select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListIdentifiers&amp;metadataPrefix=oai_dc&amp;set=', text())" />
+														</xsl:attribute>
+																Identifiers
+															</a>
+															<div class="clear"></div>
+														</div>
+														<div class="clear"></div>
+													</div>
+													<div class="clear"></div>
+												</xsl:for-each>
+												<div class="clear"></div>
+											</div>
+										</div>
+										<div class="metadata">
+											<div class="metadataTitle hiddable">Metadata</div>
+											<xsl:apply-templates select="oai:metadata/*" />
+										</div>
+									</div>
+								</div>
+							</xsl:for-each>
+
+							<xsl:if
+								test="oai:OAI-PMH/oai:ListRecords/oai:resumptionToken/text() != ''">
+								<a class="next">
+									<xsl:attribute name="href">
+										<xsl:value-of
+										select="concat(/oai:OAI-PMH/oai:request/text(), '?verb=ListRecords&amp;resumptionToken=', oai:OAI-PMH/oai:ListRecords/oai:resumptionToken/text())"></xsl:value-of>
+									</xsl:attribute>
+									Show More
+								</a>
+							</xsl:if>
+							<script type="text/javascript">
+								$(document).ready(function(){
+								$('div.recSetInner a').css('visibility','hidden');
+								$('div.recSetInner').parent().mouseover(function(){
+								$(this).find('a').css('visibility', 'visible');
+								});
+								$('div.recSetInner').parent().mouseout(function(){
+								$(this).find('a').css('visibility', 'hidden');
+								});
+								$('div.list').hide();
+								$('label.hiddable').click(function(){
+								$(this).parent().children('div.list').toggle();
+								});
+								$('div.divMetadata').hide();
+								$('div.hiddable').click(function(){
+								$(this).parent().children('div.divMetadata').toggle();
+								});
+								});
+							</script>
+						</xsl:if>
+					</div>
+					<div class="footer">
+						<div class="right">
+							<p class="text">Stylesheet provided by</p>
+							<p class="image">
+								<a href="http://www.lyncode.com">
+									<img src="static/lyncode.png" alt="Lyncode logo" style='border:none' />
+								</a>
+							</p>
+						</div>
+					</div>
+				</div>
 			</body>
 		</html>
 	</xsl:template>

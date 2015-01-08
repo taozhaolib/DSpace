@@ -47,231 +47,11 @@ public class CommunitiesResource extends Resource
 {
     private static Logger log = Logger.getLogger(CommunitiesResource.class);
 
-    /**
-     * Returns community with basic properties. If you want more, use expand
-     * parameter or method for community collections or subcommunities.
-     * 
-     * @param communityId
-     *            Id of community in DSpace.
-     * @param expand
-     *            String in which is what you want to add to returned instance
-     *            of community. Options are: "all", "parentCommunity",
-     *            "collections", "subCommunities" and "logo". If you want to use
-     *            multiple options, it must be separated by commas.
-     * @param headers
-     *            If you want to access to community under logged user into
-     *            context. In headers must be set header "rest-dspace-token"
-     *            with passed token from login method.
-     * @return Return instance of org.dspace.rest.common.Community.
-     * @throws WebApplicationException
-     *             It is throw when was problem with creating context or problem
-     *             with database reading. Also if id of community is incorrect
-     *             or logged user into context has no permission to read.
-     */
-    @GET
-    @Path("/{community_id}")
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Community getCommunity(@PathParam("community_id") Integer communityId, @QueryParam("expand") String expand,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Reading community(id=" + communityId + ").");
-        org.dspace.core.Context context = null;
-        Community community = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-
-            org.dspace.content.Community dspaceCommunity = findCommunity(context, communityId, org.dspace.core.Constants.READ);
-            writeStats(dspaceCommunity, UsageEvent.Action.VIEW, user_ip, user_agent, xforwarderfor, headers,
-                    request, context);
-
-            community = new Community(dspaceCommunity, expand, context);
-            context.complete();
-
-        }
-        catch (SQLException e)
-        {
-            processException("Could not read community(id=" + communityId + "), SQLException. Message:" + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not read community(id=" + communityId + "), ContextException. Message:" + e.getMessage(),
-                    context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-
-        log.trace("Community(id=" + communityId + ") was successfully read.");
-        return community;
-    }
-
-    /**
-     * Return all communities in DSpace.
-     * 
-     * @param expand
-     *            String in which is what you want to add to returned instance
-     *            of community. Options are: "all", "parentCommunity",
-     *            "collections", "subCommunities" and "logo". If you want to use
-     *            multiple options, it must be separated by commas.
-     * 
-     * @param limit
-     *            Maximum communities in array. Default value is 100.
-     * @param offset
-     *            Index from which will start array of communities.
-     * @param headers
-     *            If you want to access to community under logged user into
-     *            context. In headers must be set header "rest-dspace-token"
-     *            with passed token from login method.
-     * @return Return array of communities.
-     * @throws WebApplicationException
-     *             It can be caused by creating context or while was problem
-     *             with reading community from database(SQLException).
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Community[] getCommunities(@QueryParam("expand") String expand,
-            @QueryParam("limit") @DefaultValue("100") Integer limit, @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Reading all communities.(offset=" + offset + " ,limit=" + limit + ").");
-        org.dspace.core.Context context = null;
-        ArrayList<Community> communities = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-
-            org.dspace.content.Community[] dspaceCommunities = org.dspace.content.Community.findAll(context);
-            communities = new ArrayList<Community>();
-
-            if (!((limit != null) && (limit >= 0) && (offset != null) && (offset >= 0)))
-            {
-                log.warn("Paging was badly set, using default values.");
-                limit = 100;
-                offset = 0;
-            }
-
-            for (int i = offset; (i < (offset + limit)) && i < dspaceCommunities.length; i++)
-            {
-                if (AuthorizeManager.authorizeActionBoolean(context, dspaceCommunities[i], org.dspace.core.Constants.READ))
-                {
-                    Community community = new Community(dspaceCommunities[i], expand, context);
-                    writeStats(dspaceCommunities[i], UsageEvent.Action.VIEW, user_ip, user_agent,
-                            xforwarderfor, headers, request, context);
-                    communities.add(community);
-                }
-            }
-
-            context.complete();
-        }
-        catch (SQLException e)
-        {
-            processException("Could not read communities, SQLException. Message:" + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not read communities, ContextException. Message:" + e.getMessage(), context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        log.trace("All communities successfully read.");
-        return communities.toArray(new Community[0]);
-    }
-
-    /**
-     * Return all top communities in DSpace. Top communities are communities on
-     * the root of tree.
-     * 
-     * @param expand
-     *            String in which is what you want to add to returned instance
-     *            of community. Options are: "all", "parentCommunity",
-     *            "collections", "subCommunities" and "logo". If you want to use
-     *            multiple options, it must be separated by commas.
-     * 
-     * @param limit
-     *            Maximum communities in array. Default value is 100.
-     * @param offset
-     *            Index from which will start array of communities. Default
-     *            value is 0.
-     * @param headers
-     *            If you want to access to community under logged user into
-     *            context. In headers must be set header "rest-dspace-token"
-     *            with passed token from login method.
-     * @return Return array of top communities.
-     * @throws WebApplicationException
-     *             It can be caused by creating context or while was problem
-     *             with reading community from database(SQLException).
-     */
-    @GET
-    @Path("/top-communities")
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Community[] getTopCommunities(@QueryParam("expand") String expand,
-            @QueryParam("limit") @DefaultValue("20") Integer limit, @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Reading all top communities.(offset=" + offset + " ,limit=" + limit + ").");
-        org.dspace.core.Context context = null;
-        ArrayList<Community> communities = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-
-            org.dspace.content.Community[] dspaceCommunities = org.dspace.content.Community.findAllTop(context);
-            communities = new ArrayList<Community>();
-
-            if (!((limit != null) && (limit >= 0) && (offset != null) && (offset >= 0)))
-            {
-                log.warn("Pagging was badly set, using default values.");
-                limit = 100;
-                offset = 0;
-            }
-
-            for (int i = offset; (i < (offset + limit)) && i < dspaceCommunities.length; i++)
-            {
-                if (AuthorizeManager.authorizeActionBoolean(context, dspaceCommunities[i], org.dspace.core.Constants.READ))
-                {
-                    Community community = new Community(dspaceCommunities[i], expand, context);
-                    writeStats(dspaceCommunities[i], UsageEvent.Action.VIEW, user_ip, user_agent,
-                            xforwarderfor, headers, request, context);
-                    communities.add(community);
-                }
-            }
-
-            context.complete();
-        }
-        catch (SQLException e)
-        {
-            processException("Could not read top communities, SQLException. Message:" + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not read top communities, ContextException. Message:" + e.getMessage(), context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        log.trace("All top communities successfully read.");
-        return communities.toArray(new Community[0]);
-    }
+    private static final boolean writeStatistics;
+	
+	static{
+		writeStatistics=ConfigurationManager.getBooleanProperty("rest","stats",false);
+	}
 
     /**
      * Return all collections of community.
@@ -298,43 +78,20 @@ public class CommunitiesResource extends Resource
      *             with reading community from database(SQLException).
      */
     @GET
-    @Path("/{community_id}/collections")
-    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Collection[] getCommunityCollections(@PathParam("community_id") Integer communityId,
-            @QueryParam("expand") String expand, @QueryParam("limit") @DefaultValue("100") Integer limit,
-            @QueryParam("offset") @DefaultValue("0") Integer offset, @QueryParam("userIP") String user_ip,
-            @QueryParam("userAgent") String user_agent, @QueryParam("xforwarderfor") String xforwarderfor,
-            @Context HttpHeaders headers, @Context HttpServletRequest request) throws WebApplicationException
-    {
-
-        log.info("Reading community(id=" + communityId + ") collections.");
+    @Path("/")
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    public org.dspace.rest.common.Community[] list(@QueryParam("expand") String expand) {
         org.dspace.core.Context context = null;
-        ArrayList<Collection> collections = null;
+        try {
+            context = new org.dspace.core.Context();
 
-        try
-        {
-            context = createContext(getUser(headers));
-
-            org.dspace.content.Community dspaceCommunity = findCommunity(context, communityId, org.dspace.core.Constants.READ);
-            writeStats(dspaceCommunity, UsageEvent.Action.VIEW, user_ip, user_agent, xforwarderfor, headers,
-                    request, context);
-
-            if (!((limit != null) && (limit >= 0) && (offset != null) && (offset >= 0)))
-            {
-                log.warn("Pagging was badly set, using default values.");
-                limit = 100;
-                offset = 0;
-            }
-
-            collections = new ArrayList<Collection>();
-            org.dspace.content.Collection[] dspaceCollections = dspaceCommunity.getCollections();
-            for (int i = offset; (i < (offset + limit)) && (i < dspaceCollections.length); i++)
-            {
-                if (AuthorizeManager.authorizeActionBoolean(context, dspaceCollections[i], org.dspace.core.Constants.READ))
-                {
-                    collections.add(new Collection(dspaceCollections[i], expand, context, 20, 0));
-                    writeStats(dspaceCollections[i], UsageEvent.Action.VIEW, user_ip, user_agent,
-                            xforwarderfor, headers, request, context);
+            org.dspace.content.Community[] topCommunities = org.dspace.content.Community.findAllTop(context);
+            ArrayList<org.dspace.rest.common.Community> communityArrayList = new ArrayList<org.dspace.rest.common.Community>();
+            for(org.dspace.content.Community community : topCommunities) {
+                if(AuthorizeManager.authorizeActionBoolean(context, community, org.dspace.core.Constants.READ)) {
+                    //Only list communities that this user has access to.
+                    org.dspace.rest.common.Community restCommunity = new org.dspace.rest.common.Community(community, expand, context);
+                    communityArrayList.add(restCommunity);
                 }
             }
 
@@ -355,8 +112,18 @@ public class CommunitiesResource extends Resource
             processFinally(context);
         }
 
-        log.trace("Community(id=" + communityId + ") collections were successfully read.");
-        return collections.toArray(new Collection[0]);
+        } catch (SQLException e) {
+            log.error(e.getMessage());
+            throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
+        } finally {
+            if(context != null) {
+                try {
+                    context.complete();
+                } catch (SQLException e) {
+                    log.error(e.getMessage() + " occurred while trying to close");
+                }
+            }
+        }
     }
 
     /**
@@ -710,384 +477,66 @@ public class CommunitiesResource extends Resource
      */
     @PUT
     @Path("/{community_id}")
-    @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
-    public Response updateCommunity(@PathParam("community_id") Integer communityId, Community community,
-            @QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent,
-            @QueryParam("xforwarderfor") String xforwarderfor, @Context HttpHeaders headers, @Context HttpServletRequest request)
-            throws WebApplicationException
-    {
-
-        log.info("Updating community(id=" + communityId + ").");
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    public org.dspace.rest.common.Community getCommunity(@PathParam("community_id") Integer community_id, @QueryParam("expand") String expand,
+    		@QueryParam("userIP") String user_ip, @QueryParam("userAgent") String user_agent, @QueryParam("xforwarderfor") String xforwarderfor,
+    		@Context HttpHeaders headers, @Context HttpServletRequest request) {
         org.dspace.core.Context context = null;
+        try {
+            context = new org.dspace.core.Context();
 
-        try
-        {
-            context = createContext(getUser(headers));
-
-            org.dspace.content.Community dspaceCommunity = findCommunity(context, communityId, org.dspace.core.Constants.WRITE);
-            writeStats(dspaceCommunity, UsageEvent.Action.UPDATE, user_ip, user_agent, xforwarderfor,
-                    headers, request, context);
-
-            // dspaceCommunity.setLogo(arg0); // TODO Add this option.
-            dspaceCommunity.setMetadata("name", community.getName());
-            dspaceCommunity.setMetadata(org.dspace.content.Community.COPYRIGHT_TEXT, community.getCopyrightText());
-            dspaceCommunity.setMetadata(org.dspace.content.Community.INTRODUCTORY_TEXT, community.getIntroductoryText());
-            dspaceCommunity.setMetadata(org.dspace.content.Community.SHORT_DESCRIPTION, community.getShortDescription());
-            dspaceCommunity.setMetadata(org.dspace.content.Community.SIDEBAR_TEXT, community.getSidebarText());
-            dspaceCommunity.update();
-
-            context.complete();
-
-        }
-        catch (SQLException e)
-        {
-            processException("Could not update community(id=" + communityId + "), AuthorizeException. Message:" + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not update community(id=" + communityId + "), ContextException Message:" + e, context);
-        }
-        catch (AuthorizeException e)
-        {
-            processException("Could not update community(id=" + communityId + "), AuthorizeException. Message:" + e, context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-        log.info("Community(id=" + communityId + ") has been successfully updated.");
-        return Response.ok().build();
-    }
-
-    /**
-     * Delete community from DSpace. It delete it everything with community!
-     * 
-     * @param communityId
-     *            Id of community in DSpace.
-     * @param headers
-     *            If you want to access to community under logged user into
-     *            context. In headers must be set header "rest-dspace-token"
-     *            with passed token from login method.
-     * @return Return response code OK(200) if was everything all right.
-     *         Otherwise return NOT_FOUND(404) if was id of community incorrect.
-     *         Or (UNAUTHORIZED)401 if was problem with permission to community.
-     * @throws WebApplicationException
-     *             It is throw when was problem with creating context or problem
-     *             with database reading or deleting. Or problem with deleting
-     *             community caused by IOException or authorization.
-     */
-    @DELETE
-    @Path("/{community_id}")
-    public Response deleteCommunity(@PathParam("community_id") Integer communityId, @QueryParam("userIP") String user_ip,
-            @QueryParam("userAgent") String user_agent, @QueryParam("xforwarderfor") String xforwarderfor,
-            @Context HttpHeaders headers, @Context HttpServletRequest request) throws WebApplicationException
-    {
-
-        log.info("Deleting community(id=" + communityId + ").");
-        org.dspace.core.Context context = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-
-            org.dspace.content.Community community = findCommunity(context, communityId, org.dspace.core.Constants.DELETE);
-            writeStats(community, UsageEvent.Action.DELETE, user_ip, user_agent, xforwarderfor, headers,
-                    request, context);
-
-            community.delete();
-            context.complete();
-
-        }
-        catch (SQLException e)
-        {
-            processException("Could not delete community(id=" + communityId + "), SQLException. Message:" + e, context);
-        }
-        catch (AuthorizeException e)
-        {
-            processException("Could not delete community(id=" + communityId + "), AuthorizeException. Message:" + e, context);
-        }
-        catch (IOException e)
-        {
-            processException("Could not delete community(id=" + communityId + "), IOException. Message:" + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not delete community(id=" + communityId + "), ContextException. Message:" + e.getMessage(),
-                    context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-
-        log.info("Community(id=" + communityId + ") was successfully deleted.");
-        return Response.status(Response.Status.OK).build();
-    }
-
-    /**
-     * Delete collection in community.
-     * 
-     * @param communityId
-     *            Id of community in DSpace.
-     * @param collectionId
-     *            Id of collection which will be deleted.
-     * @param headers
-     *            If you want to access to community under logged user into
-     *            context. In headers must be set header "rest-dspace-token"
-     *            with passed token from login method.
-     * @return Return response code OK(200) if was everything all right.
-     *         Otherwise return NOT_FOUND(404) if was id of community or
-     *         collection incorrect. Or (UNAUTHORIZED)401 if was problem with
-     *         permission to community or collection.
-     * @throws WebApplicationException
-     *             It is throw when was problem with creating context or problem
-     *             with database reading or deleting. Or problem with deleting
-     *             collection caused by IOException or authorization.
-     */
-    @DELETE
-    @Path("/{community_id}/collections/{collection_id}")
-    public Response deleteCommunityCollection(@PathParam("community_id") Integer communityId,
-            @PathParam("collection_id") Integer collectionId, @QueryParam("userIP") String user_ip,
-            @QueryParam("userAgent") String user_agent, @QueryParam("xforwarderfor") String xforwarderfor,
-            @Context HttpHeaders headers, @Context HttpServletRequest request) throws WebApplicationException
-    {
-
-        log.info("Deleting collection(id=" + collectionId + ") in community(id=" + communityId + ").");
-        org.dspace.core.Context context = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-
-            org.dspace.content.Community community = findCommunity(context, communityId, org.dspace.core.Constants.WRITE);
-            org.dspace.content.Collection collection = null;
-            for (org.dspace.content.Collection dspaceCollection : community.getAllCollections())
-            {
-                if (dspaceCollection.getID() == collectionId)
-                {
-                    collection = dspaceCollection;
-                    break;
-                }
-            }
-
-            if (collection == null)
-            {
-                context.abort();
-                log.warn("Collection(id=" + collectionId + ") was not found!");
-                throw new WebApplicationException(Response.Status.NOT_FOUND);
-            }
-            else if (!AuthorizeManager.authorizeActionBoolean(context, collection, org.dspace.core.Constants.REMOVE))
-            {
-                context.abort();
-                if (context.getCurrentUser() != null)
-                {
-                    log.error("User(" + context.getCurrentUser().getEmail() + ") has not permission to delete collection!");
-                }
-                else
-                {
-                    log.error("User(anonymous) has not permission to delete collection!");
-                }
+            org.dspace.content.Community community = org.dspace.content.Community.find(context, community_id);
+            if(AuthorizeManager.authorizeActionBoolean(context, community, org.dspace.core.Constants.READ)) {
+            	if(writeStatistics){
+    				writeStats(context, community_id, user_ip, user_agent, xforwarderfor, headers, request);
+    			}
+                return new org.dspace.rest.common.Community(community, expand, context);
+            } else {
                 throw new WebApplicationException(Response.Status.UNAUTHORIZED);
             }
-
-            writeStats(community, UsageEvent.Action.UPDATE, user_ip, user_agent, xforwarderfor, headers,
-                    request, context);
-            writeStats(collection, UsageEvent.Action.DELETE, user_ip, user_agent, xforwarderfor, headers,
-                    request, context);
-
-            community.removeCollection(collection);
-
-            context.complete();
-
+        } catch (SQLException e) {
+            log.error(e.getMessage());
+            throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
+        } finally {
+            if(context != null) {
+                try {
+                    context.complete();
+                } catch (SQLException e) {
+                    log.error(e.getMessage() + " occurred while trying to close");
+                }
+            }
         }
-        catch (SQLException e)
-        {
-            processException("Could not delete collection(id=" + collectionId + ") in community(id=" + communityId
-                    + "), SQLException. Message:" + e, context);
-        }
-        catch (AuthorizeException e)
-        {
-            processException("Could not delete collection(id=" + collectionId + ") in community(id=" + communityId
-                    + "), AuthorizeException. Message:" + e, context);
-        }
-        catch (IOException e)
-        {
-            processException("Could not delete collection(id=" + collectionId + ") in community(id=" + communityId
-                    + "), IOException. Message:" + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not delete collection(id=" + collectionId + ") in community(id=" + communityId
-                    + "), ContextExcpetion. Message:" + e.getMessage(), context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-
-        log.info("Collection(id=" + collectionId + ") in community(id=" + communityId + ") was successfully deleted.");
-        return Response.status(Response.Status.OK).build();
     }
-
-    /**
-     * Delete subcommunity in community.
-     * 
-     * @param parentCommunityId
-     *            Id of community in DSpace.
-     * @param subcommunityId
-     *            Id of community which will be deleted.
-     * @param headers
-     *            If you want to access to community under logged user into
-     *            context. In headers must be set header "rest-dspace-token"
-     *            with passed token from login method.
-     * @return Return response code OK(200) if was everything all right.
-     *         Otherwise return NOT_FOUND(404) if was id of community or
-     *         subcommunity incorrect. Or (UNAUTHORIZED)401 if was problem with
-     *         permission to community or subcommunity.
-     * @throws WebApplicationException
-     *             It is throw when was problem with creating context or problem
-     *             with database reading or deleting. Or problem with deleting
-     *             subcommunity caused by IOException or authorization.
-     */
-    @DELETE
-    @Path("/{community_id}/communities/{community_id2}")
-    public Response deleteCommunityCommunity(@PathParam("community_id") Integer parentCommunityId,
-            @PathParam("community_id2") Integer subcommunityId, @QueryParam("userIP") String user_ip,
-            @QueryParam("userAgent") String user_agent, @QueryParam("xforwarderfor") String xforwarderfor,
-            @Context HttpHeaders headers, @Context HttpServletRequest request) throws WebApplicationException
-    {
-
-        log.info("Deleting community(id=" + parentCommunityId + ").");
-        org.dspace.core.Context context = null;
-
-        try
-        {
-            context = createContext(getUser(headers));
-
-            org.dspace.content.Community parentCommunity = findCommunity(context, parentCommunityId,
-                    org.dspace.core.Constants.WRITE);
-            org.dspace.content.Community subcommunity = null;
-            for (org.dspace.content.Community dspaceCommunity : parentCommunity.getSubcommunities())
-            {
-                if (dspaceCommunity.getID() == subcommunityId)
-                {
-                    subcommunity = dspaceCommunity;
-                    break;
-                }
-            }
-
-            if (subcommunity == null)
-            {
-                context.abort();
-                log.warn("Subcommunity(id=" + subcommunityId + ") in community(id=" + ") was not found!");
-                throw new WebApplicationException(Response.Status.NOT_FOUND);
-            }
-            else if (!AuthorizeManager.authorizeActionBoolean(context, subcommunity, org.dspace.core.Constants.REMOVE))
-            {
-                context.abort();
-                if (context.getCurrentUser() != null)
-                {
-                    log.error("User(" + context.getCurrentUser().getEmail() + ") has not permission to delete community!");
-                }
-                else
-                {
-                    log.error("User(anonymous) has not permission to delete community!");
-                }
-                throw new WebApplicationException(Response.Status.UNAUTHORIZED);
-            }
-
-            writeStats(parentCommunity, UsageEvent.Action.UPDATE, user_ip, user_agent, xforwarderfor,
-                    headers, request, context);
-            writeStats(subcommunity, UsageEvent.Action.DELETE, user_ip, user_agent, xforwarderfor, headers,
-                    request, context);
-
-            parentCommunity.removeSubcommunity(subcommunity);
-            context.complete();
-
-        }
-        catch (SQLException e)
-        {
-            processException("Could not delete subcommunity(id=" + subcommunityId + ") in community(id=" + parentCommunityId
-                    + "), SQLException. Message:" + e, context);
-        }
-        catch (AuthorizeException e)
-        {
-            processException("Could not delete subcommunity(id=" + subcommunityId + ") in community(id=" + parentCommunityId
-                    + "), AuthorizeException. Message:" + e, context);
-        }
-        catch (IOException e)
-        {
-            processException("Could not delete subcommunity(id=" + subcommunityId + ") in community(id=" + parentCommunityId
-                    + "), IOException. Message:" + e, context);
-        }
-        catch (ContextException e)
-        {
-            processException("Could not delete subcommunity(id=" + subcommunityId + ") in community(id=" + parentCommunityId
-                    + "), ContextExcpetion. Message:" + e.getMessage(), context);
-        }
-        finally
-        {
-            processFinally(context);
-        }
-
-
-        log.info("Subcommunity(id=" + subcommunityId + ") from community(id=" + parentCommunityId + ") was successfully deleted.");
-        return Response.status(Response.Status.OK).build();
-    }
-
-    /**
-     * Find community from DSpace database. It is encapsulation of method
-     * org.dspace.content.Community.find with checking if item exist and if user
-     * logged into context has permission to do passed action.
-     * 
-     * @param context
-     *            Context of actual logged user.
-     * @param id
-     *            Id of community in DSpace.
-     * @param action
-     *            Constant from org.dspace.core.Constants.
-     * @return It returns DSpace collection.
-     * @throws WebApplicationException
-     *             Is thrown when item with passed id is not exists and if user
-     *             has no permission to do passed action.
-     */
-    private org.dspace.content.Community findCommunity(org.dspace.core.Context context, int id, int action)
-            throws WebApplicationException
-    {
-        org.dspace.content.Community community = null;
-        try
-        {
-            community = org.dspace.content.Community.find(context, id);
-
-            if (community == null)
-            {
-                context.abort();
-                log.warn("Community(id=" + id + ") was not found!");
-                throw new WebApplicationException(Response.Status.NOT_FOUND);
-            }
-            else if (!AuthorizeManager.authorizeActionBoolean(context, community, action))
-            {
-                context.abort();
-                if (context.getCurrentUser() != null)
-                {
-                    log.error("User(" + context.getCurrentUser().getEmail() + ") has not permission to "
-                            + getActionString(action) + " community!");
-                }
-                else
-                {
-                    log.error("User(anonymous) has not permission to " + getActionString(action) + " community!");
-                }
-                throw new WebApplicationException(Response.Status.UNAUTHORIZED);
-            }
-
-        }
-        catch (SQLException e)
-        {
-            processException("Something get wrong while finding community(id=" + id + "). SQLException, Message:" + e, context);
-        }
-        return community;
-    }
+    
+    private void writeStats(org.dspace.core.Context context, Integer community_id, String user_ip, String user_agent,
+ 			String xforwarderfor, HttpHeaders headers,
+ 			HttpServletRequest request) {
+ 		
+     	try{
+     		DSpaceObject community = DSpaceObject.find(context, Constants.COMMUNITY, community_id);
+     		
+     		if(user_ip==null || user_ip.length()==0){
+     			new DSpace().getEventService().fireEvent(
+ 	                     new UsageEvent(
+ 	                                     UsageEvent.Action.VIEW,
+ 	                                     request,
+ 	                                     context,
+ 	                                    community));
+     		} else{
+ 	    		new DSpace().getEventService().fireEvent(
+ 	                     new UsageEvent(
+ 	                                     UsageEvent.Action.VIEW,
+ 	                                     user_ip,
+ 	                                     user_agent,
+ 	                                     xforwarderfor,
+ 	                                     context,
+ 	                                    community));
+     		}
+     		log.debug("fired event");
+     		
+ 		} catch(SQLException ex){
+ 			log.error("SQL exception can't write usageEvent \n" + ex);
+ 		}
+     		
+ 	}
 }
